@@ -2,15 +2,13 @@ import { ArrowRight, FileText, SearchCheck } from 'lucide-react';
 import Button from '../components/Button';
 import { sampleJobs } from '../data/sampleJobs';
 import { sampleProfile } from '../data/sampleProfiles';
-import { llmAdapter } from '../lib/llmAdapter';
-import { saveEvaluation, saveGeneratedProfile } from '../lib/storage';
+import { saveGeneratedProfile } from '../lib/storage';
 
 export default function HomePage({ go }) {
-  const runSample = async () => {
+  const runSample = () => {
     saveGeneratedProfile(sampleProfile);
-    const evaluation = await llmAdapter.evaluateJob(sampleProfile, sampleJobs[0]);
-    saveEvaluation(evaluation);
-    go('results');
+    sessionStorage.setItem('cogfit.pendingJob', JSON.stringify(sampleJobs[0]));
+    go('evaluator');
   };
 
   return (
@@ -23,7 +21,7 @@ export default function HomePage({ go }) {
           </p>
           <div className="hero-actions">
             <Button onClick={() => go('profile')}>Build my work-fit profile <ArrowRight size={18} /></Button>
-            <Button variant="secondary" onClick={runSample}>Try sample analysis</Button>
+            <Button variant="secondary" onClick={runSample}>Try sample job ad</Button>
           </div>
         </div>
         <div className="hero-panel" aria-label="Prototype workflow preview">

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Button from '../components/Button';
+import AuthPanel from '../components/AuthPanel';
 import { sampleJobs } from '../data/sampleJobs';
 import { llmAdapter } from '../lib/llmAdapter';
 import { loadGeneratedProfile, saveEvaluation } from '../lib/storage';
@@ -7,7 +8,22 @@ import { loadGeneratedProfile, saveEvaluation } from '../lib/storage';
 const emptyJob = { title: '', company: '', description: '', notes: '' };
 
 export default function JobEvaluator({ go }) {
-  const [job, setJob] = useState(emptyJob);
+  const [job, setJob] = useState(() => {
+    const pending = sessionStorage.getItem('cogfit.pendingJob');
+    if (!pending) return emptyJob;
+    sessionStorage.removeItem('cogfit.pendingJob');
+    try {
+      const sample = JSON.parse(pending);
+      return {
+        title: sample.title || '',
+        company: sample.company || '',
+        description: sample.description || '',
+        notes: sample.notes || ''
+      };
+    } catch {
+      return emptyJob;
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const profile = loadGeneratedProfile();
@@ -36,8 +52,8 @@ export default function JobEvaluator({ go }) {
       const evaluation = await llmAdapter.evaluateJob(profile, job);
       saveEvaluation(evaluation);
       go('results');
-    } catch {
-      setError('The evaluator failed. Your profile and job text are still saved locally if you entered them.');
+    } catch (evaluationError) {
+      setError(evaluationError?.message || 'The evaluator failed. Your profile and job text are still saved locally if you entered them.');
     } finally {
       setLoading(false);
     }
@@ -48,10 +64,11 @@ export default function JobEvaluator({ go }) {
       <div className="page-heading">
         <div>
           <h1>Evaluate a job ad</h1>
-          <p>Paste a role and get separate scores for fit, callback likelihood, cognitive load, and workstyle risk.</p>
+          <p>Paste a role and get a live model analysis with separate scores for fit, callback likelihood, cognitive load, and workstyle risk.</p>
         </div>
         {!profile && <Button onClick={() => go('profile')}>Build profile first</Button>}
       </div>
+      <AuthPanel compact />
       <div className="sample-row">
         {sampleJobs.map((sample) => (
           <Button key={sample.id} variant="secondary" onClick={() => loadSample(sample)}>{sample.label}: {sample.title}</Button>

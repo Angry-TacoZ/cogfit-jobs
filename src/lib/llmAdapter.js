@@ -1,21 +1,15 @@
 import { generateWorkFitProfile } from './profileScoring';
-import { mockEvaluateJob, mockAdaptiveQuestions } from './evaluator';
+import { generateAdaptiveQuestions } from './evaluator';
+import { callEvaluateJob } from './firebaseClient';
 
 export const llmAdapter = {
   async generateProfileSummary(profileAnswers) {
     return generateWorkFitProfile(profileAnswers);
   },
   async evaluateJob(profile, jobAd) {
-    const mode = import.meta.env.VITE_COGFIT_EVALUATOR_MODE || 'mock';
-    if (mode !== 'mock') {
-      return {
-        ...mockEvaluateJob(profile, jobAd),
-        assumptions: ['Live LLM mode is not wired in this frontend prototype. Returned deterministic mock output instead.']
-      };
-    }
-    return mockEvaluateJob(profile, jobAd);
+    return callEvaluateJob(profile, jobAd);
   },
   async generateAdaptiveQuestions(profile, jobAd, currentConfidence) {
-    return mockAdaptiveQuestions(profile, jobAd, currentConfidence);
+    return generateAdaptiveQuestions(profile, jobAd, currentConfidence);
   }
 };

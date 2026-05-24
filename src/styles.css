@@ -210,6 +210,8 @@ p {
 
 .hero-panel,
 .form-panel,
+.auth-panel,
+.auth-strip,
 .result-summary,
 .recommendation,
 .feedback,
@@ -317,9 +319,41 @@ p {
 }
 
 .form-panel,
+.auth-panel,
 .result-summary,
 .feedback {
   padding: clamp(20px, 4vw, 34px);
+}
+
+.auth-panel {
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.2fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.auth-form {
+  display: grid;
+  gap: 2px;
+}
+
+.auth-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.auth-strip span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.compact-auth h2 {
+  font-size: 1.2rem;
 }
 
 .two-col {
@@ -500,6 +534,7 @@ ol {
 
   .hero,
   .feature-grid,
+  .auth-panel,
   .two-col,
   .detail-grid {
     grid-template-columns: 1fr;

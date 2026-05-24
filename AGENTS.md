@@ -7,6 +7,10 @@ Rules:
 - Never commit secrets.
 - Use environment variables for any API keys.
 - Do not use `VITE_*`, `NEXT_PUBLIC_*`, or similar public-build variables for secrets.
+- Live model calls must go through Firebase Functions with Secret Manager.
+- Require signed-in non-anonymous users for live evaluation.
+- Require Firebase App Check for live evaluation.
+- Keep request size limits, per-user quota, global quota, max instance cap, timeout, and model output cap in place.
 - Do not fabricate user data.
 - If the evaluator lacks evidence, lower confidence and say what is missing.
 - Avoid em dashes in visible copy.
@@ -15,6 +19,7 @@ Rules:
 - Do not add paid features, auth, scraping, or job-board integrations in MVP.
 - Do not create fake employer claims.
 - Make all assumptions visible in the output.
+- Do not reintroduce browser-side or deterministic mock job scoring as the main product path.
 
 Before public deployment:
 - Build the app.
