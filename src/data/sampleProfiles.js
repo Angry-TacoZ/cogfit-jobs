@@ -1,0 +1,51 @@
+export const sampleProfileAnswers = {
+  q1: 'AI enablement, forward deployed engineering, solutions engineering, AI workflow automation, product operations.',
+  q2: 'AI engineer, solutions architect, automation consultant, product operations analyst, technical implementation specialist.',
+  q3: 'Remote or hybrid, limited travel, enough salary stability to avoid churn, preference for asynchronous work blocks.',
+  q4: 'Built live AI workflows, deployed assistant tools, automated document processing, connected APIs, and shipped dashboards that solved real process problems.',
+  q5: 'Cloud-hosted AI assistant, Python document tooling, SQL and Power BI dashboard, workflow automations, API integrations, technical writing.',
+  q6: 'Python, JavaScript, React, Firebase, Cloud Functions, SQL, Power BI, OpenAI and Anthropic APIs, Google APIs, document parsers.',
+  q7: 'Titles understate the systems design and implementation work. Resume looks scattered because projects crossed product, data, automation, and support boundaries.',
+  q8: 'Ambiguous problems where I can map the system, find root causes, build tools, and make a messy workflow clearer.',
+  q9: 'Repetitive volume work, rigid scripts, quota pressure, live call queues, and roles where the real problem is political but framed as execution.',
+  q10: 'Long focus blocks, written collaboration, direct access to real users or operators, and ownership of a useful workflow improvement.',
+  q11: 'Back-to-back calls, shifting priorities without context, constant status theater, and urgent support queues with no authority to fix root causes.',
+  q12: 'High interaction load and repetitive switching create a hidden cost. I perform better when communication is written and decisions are explicit.',
+  q13: 'Ambiguous problems with ownership, as long as there is enough context to understand constraints and decision rights.',
+  q14: 'Enough structure to know the goal, users, constraints, and success criteria. I do not need a script if the problem is real.',
+  q15: 'Improving broken systems and creating new systems. Stable operations are fine when paired with diagnosis and improvement.',
+  q16: 'Inputs, incentives, ownership boundaries, failure patterns, logs, workflow handoffs, and where users are forced into workarounds.',
+  q17: 'Moderate meetings if purposeful. Low tolerance for high-volume phone, camera, or live customer queues.',
+  q18: 'Writing, demos, documentation, and structured async updates.',
+  q19: 'Problem-solving with builders, operators, and users who can describe the workflow honestly.',
+  q20: 'Performative meetings, sales pressure, status games, and hostile customer escalations without authority.',
+  q21: 'Support-heavy or sales-adjacent roles went badly when success depended on call volume, persuasion pressure, or absorbing broken process pain.',
+  q22: 'Customer support, repetitive QA, manual data cleanup, status reporting, and sales enablement all day.',
+  q23: 'building, analyzing, explaining, operating, supporting, managing, selling',
+  q24: 'Accept if the role gives ownership of AI workflows and evidence-based problem solving. Reject if it is mostly sales pressure, call volume, or vague chaos.'
+};
+
+export const sampleProfile = {
+  target_role_families: ['AI enablement', 'forward deployed engineering', 'solutions engineering', 'AI workflow automation', 'product operations'],
+  strongest_evidence: ['Cloud-hosted AI assistant', 'API integrations', 'Python document tooling', 'SQL and Power BI dashboard', 'workflow automations'],
+  tools_and_skills: ['Python', 'JavaScript', 'React', 'Firebase', 'Cloud Functions', 'SQL', 'Power BI', 'LLM APIs'],
+  energizers: ['ambiguous problems with ownership', 'root cause analysis', 'building workflow tools', 'systems mapping'],
+  drainers: ['repetitive volume work', 'sales pressure', 'call queues', 'constant live meetings'],
+  preferred_problem_structure: 'Ambiguous problems with clear goals, constraints, and ownership.',
+  communication_preferences: ['writing', 'demos', 'documentation', 'asynchronous updates'],
+  interaction_limits: 'Moderate purposeful meetings, low tolerance for high-volume phone or live customer queues.',
+  autonomy_needs: 'Needs ownership and direct context, not micromanaged task fragments.',
+  negative_fit_patterns: ['quota pressure', 'support queues without authority', 'performative meetings', 'role containment'],
+  hidden_costs: ['interaction load', 'repetitive context switching', 'unclear decision rights'],
+  misunderstood_resume_signals: ['cross-functional project history', 'systems work hidden behind nontraditional titles'],
+  systems_thinking_score: {
+    root_cause_depth: 5,
+    system_mapping: 5,
+    pattern_recognition: 5,
+    failure_mode_awareness: 4,
+    improvement_drive: 5,
+    abstraction_ability: 4
+  },
+  confidence_score: 88,
+  missing_information: ['recent quantified outcomes', 'formal credential requirements by target market']
+};
