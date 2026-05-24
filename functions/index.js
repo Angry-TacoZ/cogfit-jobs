@@ -2,13 +2,14 @@ const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineInt, defineSecret, defineString } = require('firebase-functions/params');
+const { GoogleGenAI } = require('@google/genai');
 
 initializeApp();
 
 const db = getFirestore();
-const openAiApiKey = defineSecret('OPENAI_API_KEY');
-const openAiModel = defineString('OPENAI_MODEL', { default: 'gpt-4.1-mini' });
-const anonymousDailyLimit = defineInt('ANONYMOUS_DAILY_EVALUATION_LIMIT', { default: 5 });
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
+const geminiModel = defineString('GEMINI_MODEL', { default: 'gemini-3.5-flash' });
+const userDailyLimit = defineInt('USER_DAILY_EVALUATION_LIMIT', { default: 5 });
 const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 100 });
 
 const MAX_DESCRIPTION_CHARS = 12000;
@@ -125,7 +126,7 @@ async function enforceDailyQuota(uid) {
   const day = getDayKey();
   const userRef = db.collection('usageCounters').doc(`user_${uid}_${day}`);
   const globalRef = db.collection('usageCounters').doc(`global_${day}`);
-  const userLimit = anonymousDailyLimit.value();
+  const userLimit = userDailyLimit.value();
   const allUsersLimit = globalDailyLimit.value();
 
   await db.runTransaction(async (transaction) => {
@@ -178,17 +179,12 @@ function buildPrompt(profile, jobAd) {
   ].join('\n');
 }
 
-function parseOpenAiJson(responseJson) {
-  const text = responseJson.output_text ||
-    responseJson.output?.flatMap((item) => item.content || [])
-      .map((content) => content.text || '')
-      .join('');
-
-  if (!text) {
-    throw new Error('OpenAI response did not include output text.');
+function parseGeminiJson(response) {
+  if (!response.text) {
+    throw new Error('Gemini response did not include output text.');
   }
 
-  return JSON.parse(text);
+  return JSON.parse(response.text);
 }
 
 exports.evaluateJob = onCall(
@@ -199,7 +195,7 @@ exports.evaluateJob = onCall(
     maxInstances: 1,
     timeoutSeconds: 60,
     memory: '256MiB',
-    secrets: [openAiApiKey]
+    secrets: [geminiApiKey]
   },
   async (request) => {
     if (!request.auth || !request.auth.uid) {
@@ -215,42 +211,35 @@ exports.evaluateJob = onCall(
     const { profile, jobAd } = validateRequest(request.data);
     await enforceDailyQuota(request.auth.uid);
 
-    const apiKey = openAiApiKey.value();
+    const apiKey = geminiApiKey.value();
     if (!apiKey) {
-      throw new HttpsError('failed-precondition', 'OPENAI_API_KEY is not configured on the server.');
+      throw new HttpsError('failed-precondition', 'GEMINI_API_KEY is not configured on the server.');
     }
 
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: openAiModel.value(),
-        input: buildPrompt(profile, jobAd),
-        max_output_tokens: 1800,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'cogfit_job_report',
-            schema: reportSchema
-          }
+    const model = geminiModel.value();
+    const client = new GoogleGenAI({ apiKey });
+    let response;
+    try {
+      response = await client.models.generateContent({
+        model,
+        contents: buildPrompt(profile, jobAd),
+        config: {
+          responseMimeType: 'application/json',
+          responseJsonSchema: reportSchema,
+          maxOutputTokens: 1800,
+          temperature: 0.2
         }
-      })
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      console.error('OpenAI request failed', response.status, body.slice(0, 500));
+      });
+    } catch (error) {
+      console.error('Gemini request failed', error);
       throw new HttpsError('internal', 'Live evaluator request failed before producing a report.');
     }
 
     let report;
     try {
-      report = parseOpenAiJson(await response.json());
+      report = parseGeminiJson(response);
     } catch (error) {
-      console.error('Failed to parse OpenAI structured output', error);
+      console.error('Failed to parse Gemini structured output', error);
       throw new HttpsError('internal', 'Live evaluator returned an unreadable report.');
     }
 

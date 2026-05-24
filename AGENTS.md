@@ -7,7 +7,7 @@ Rules:
 - Never commit secrets.
 - Use environment variables for any API keys.
 - Do not use `VITE_*`, `NEXT_PUBLIC_*`, or similar public-build variables for secrets.
-- Live model calls must go through Firebase Functions with Secret Manager.
+- Live Gemini model calls must go through Firebase Functions with Secret Manager.
 - Require signed-in non-anonymous users for live evaluation.
 - Require Firebase App Check for live evaluation.
 - Keep request size limits, per-user quota, global quota, max instance cap, timeout, and model output cap in place.

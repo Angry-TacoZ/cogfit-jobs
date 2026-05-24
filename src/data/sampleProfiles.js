@@ -4,7 +4,7 @@ export const sampleProfileAnswers = {
   q3: 'Remote or hybrid, limited travel, enough salary stability to avoid churn, preference for asynchronous work blocks.',
   q4: 'Built live AI workflows, deployed assistant tools, automated document processing, connected APIs, and shipped dashboards that solved real process problems.',
   q5: 'Cloud-hosted AI assistant, Python document tooling, SQL and Power BI dashboard, workflow automations, API integrations, technical writing.',
-  q6: 'Python, JavaScript, React, Firebase, Cloud Functions, SQL, Power BI, OpenAI and Anthropic APIs, Google APIs, document parsers.',
+  q6: 'Python, JavaScript, React, Firebase, Cloud Functions, SQL, Power BI, Gemini and Anthropic APIs, Google APIs, document parsers.',
   q7: 'Titles understate the systems design and implementation work. Resume looks scattered because projects crossed product, data, automation, and support boundaries.',
   q8: 'Ambiguous problems where I can map the system, find root causes, build tools, and make a messy workflow clearer.',
   q9: 'Repetitive volume work, rigid scripts, quota pressure, live call queues, and roles where the real problem is political but framed as execution.',

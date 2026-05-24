@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open the local Vite URL shown in the terminal. Live evaluation requires Firebase client config, Firebase Auth, App Check, and a server-side `OPENAI_API_KEY` secret.
+Open the local Vite URL shown in the terminal. Live evaluation requires Firebase client config, Firebase Auth, App Check, and a server-side `GEMINI_API_KEY` secret.
 
 ## Build
 
@@ -27,13 +27,13 @@ Copy `.env.example` to `.env` and fill in the Firebase web app config.
 
 Do not put paid model API keys in frontend variables such as `VITE_*`. The `VITE_FIREBASE_*` values are public Firebase client config, not model secrets.
 
-Set the OpenAI key as a Firebase Functions secret:
+Set the Gemini key as a Firebase Functions secret:
 
 ```powershell
-firebase functions:secrets:set OPENAI_API_KEY --project cogfit-jobs
+firebase functions:secrets:set GEMINI_API_KEY --project cogfit-jobs
 ```
 
-The function defaults to `gpt-4.1-mini`, a low-cost OpenAI model that supports the Responses API and structured outputs.
+The function defaults to `gemini-3.5-flash`, matching the intended live evaluator model. Search grounding and other tools are not enabled in the function, so the evaluator should only make standard model calls unless the function code is intentionally changed later.
 
 ## Required Firebase setup
 
@@ -43,7 +43,7 @@ Enable these before deploying live evaluation:
 - Firebase App Check for the web app using reCAPTCHA Enterprise.
 - Firestore in Native mode for daily usage counters.
 - Google Cloud billing budget alerts.
-- OpenAI project budget and usage limits.
+- Google AI Studio or Gemini API budget and usage limits.
 
 The callable function also enforces:
 
