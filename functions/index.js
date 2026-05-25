@@ -15,6 +15,67 @@ const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 1
 const MAX_DESCRIPTION_CHARS = 12000;
 const MAX_PROFILE_CHARS = 16000;
 const MAX_NOTES_CHARS = 1000;
+const MAX_PROFILE_ANSWERS_CHARS = 18000;
+
+const systemsThinkingSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'root_cause_depth',
+    'system_mapping',
+    'pattern_recognition',
+    'failure_mode_awareness',
+    'improvement_drive',
+    'abstraction_ability'
+  ],
+  properties: {
+    root_cause_depth: { type: 'integer', minimum: 0, maximum: 5 },
+    system_mapping: { type: 'integer', minimum: 0, maximum: 5 },
+    pattern_recognition: { type: 'integer', minimum: 0, maximum: 5 },
+    failure_mode_awareness: { type: 'integer', minimum: 0, maximum: 5 },
+    improvement_drive: { type: 'integer', minimum: 0, maximum: 5 },
+    abstraction_ability: { type: 'integer', minimum: 0, maximum: 5 }
+  }
+};
+
+const workFitProfileSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'target_role_families',
+    'strongest_evidence',
+    'tools_and_skills',
+    'energizers',
+    'drainers',
+    'preferred_problem_structure',
+    'communication_preferences',
+    'interaction_limits',
+    'autonomy_needs',
+    'negative_fit_patterns',
+    'hidden_costs',
+    'misunderstood_resume_signals',
+    'systems_thinking_score',
+    'confidence_score',
+    'missing_information'
+  ],
+  properties: {
+    target_role_families: { type: 'array', items: { type: 'string' }, maxItems: 8 },
+    strongest_evidence: { type: 'array', items: { type: 'string' }, maxItems: 10 },
+    tools_and_skills: { type: 'array', items: { type: 'string' }, maxItems: 20 },
+    energizers: { type: 'array', items: { type: 'string' }, maxItems: 10 },
+    drainers: { type: 'array', items: { type: 'string' }, maxItems: 10 },
+    preferred_problem_structure: { type: 'string' },
+    communication_preferences: { type: 'array', items: { type: 'string' }, maxItems: 8 },
+    interaction_limits: { type: 'string' },
+    autonomy_needs: { type: 'string' },
+    negative_fit_patterns: { type: 'array', items: { type: 'string' }, maxItems: 10 },
+    hidden_costs: { type: 'array', items: { type: 'string' }, maxItems: 8 },
+    misunderstood_resume_signals: { type: 'array', items: { type: 'string' }, maxItems: 8 },
+    systems_thinking_score: systemsThinkingSchema,
+    confidence_score: { type: 'integer', minimum: 0, maximum: 100 },
+    missing_information: { type: 'array', items: { type: 'string' }, maxItems: 10 }
+  }
+};
 
 const reportSchema = {
   type: 'object',
@@ -122,6 +183,35 @@ function validateRequest(data) {
   return { profile, jobAd: { title, company, description, notes } };
 }
 
+function validateProfileRequest(data) {
+  const answers = data && data.answers;
+  const draftProfile = data && data.draftProfile;
+
+  if (!answers || typeof answers !== 'object') {
+    throw new HttpsError('invalid-argument', 'Profile answers are required.');
+  }
+  if (!draftProfile || typeof draftProfile !== 'object') {
+    throw new HttpsError('invalid-argument', 'A JavaScript first-pass profile is required.');
+  }
+
+  const answersJson = JSON.stringify(answers);
+  const draftJson = JSON.stringify(draftProfile);
+
+  if (answersJson.length > MAX_PROFILE_ANSWERS_CHARS) {
+    throw new HttpsError('invalid-argument', `Profile answers are too large. Limit them to ${MAX_PROFILE_ANSWERS_CHARS} characters.`);
+  }
+  if (draftJson.length > MAX_PROFILE_CHARS) {
+    throw new HttpsError('invalid-argument', `Draft profile is too large. Limit it to ${MAX_PROFILE_CHARS} characters.`);
+  }
+
+  const answeredCount = Object.values(answers).filter((value) => String(value || '').trim().length > 0).length;
+  if (answeredCount < 12) {
+    throw new HttpsError('invalid-argument', 'Answer more profile questions before generating the final work-fit profile.');
+  }
+
+  return { answers, draftProfile };
+}
+
 async function enforceDailyQuota(uid) {
   const day = getDayKey();
   const userRef = db.collection('usageCounters').doc(`user_${uid}_${day}`);
@@ -179,6 +269,25 @@ function buildPrompt(profile, jobAd) {
   ].join('\n');
 }
 
+function buildProfilePrompt(answers, draftProfile) {
+  return [
+    'You are CogFit Jobs, creating a final Work-Fit Profile for a nontraditional candidate.',
+    'Use the supplied questionnaire answers as the primary evidence.',
+    'Use the JavaScript first-pass profile only as a rough draft, not as ground truth.',
+    'Do not diagnose medical conditions. Do not add claims the user did not support.',
+    'If evidence is missing, lower confidence and name the missing information.',
+    'Infer systems thinking from answer structure, not self-labels.',
+    'Look for root causes, downstream effects, incentives, workflows, constraints, failure modes, repeated patterns, and process redesign.',
+    'Avoid em dashes in all prose.',
+    '',
+    'Final profile fields must be concise, evidence-based, and useful for later job-ad evaluation.',
+    '',
+    `Questionnaire answers JSON:\n${JSON.stringify(answers, null, 2)}`,
+    '',
+    `JavaScript first-pass profile JSON:\n${JSON.stringify(draftProfile, null, 2)}`
+  ].join('\n');
+}
+
 function parseGeminiJson(response) {
   if (!response.text) {
     throw new Error('Gemini response did not include output text.');
@@ -186,6 +295,73 @@ function parseGeminiJson(response) {
 
   return JSON.parse(response.text);
 }
+
+async function requireProtectedUser(request, actionLabel) {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', `Sign in is required before ${actionLabel}.`);
+  }
+  if (request.auth.token?.firebase?.sign_in_provider === 'anonymous') {
+    throw new HttpsError('permission-denied', `Anonymous accounts cannot run ${actionLabel}.`);
+  }
+  if (!request.app) {
+    throw new HttpsError('failed-precondition', `Firebase App Check is required before ${actionLabel}.`);
+  }
+  await enforceDailyQuota(request.auth.uid);
+}
+
+async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
+  const apiKey = geminiApiKey.value();
+  if (!apiKey) {
+    throw new HttpsError('failed-precondition', 'GEMINI_API_KEY is not configured on the server.');
+  }
+
+  const model = geminiModel.value();
+  const client = new GoogleGenAI({ apiKey });
+  let response;
+  try {
+    response = await client.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: schema,
+        maxOutputTokens,
+        temperature: 0.2
+      }
+    });
+  } catch (error) {
+    console.error('Gemini request failed', error);
+    throw new HttpsError('internal', 'Live evaluator request failed before producing a report.');
+  }
+
+  try {
+    return parseGeminiJson(response);
+  } catch (error) {
+    console.error('Failed to parse Gemini structured output', error);
+    throw new HttpsError('internal', 'Live evaluator returned an unreadable report.');
+  }
+}
+
+exports.generateProfile = onCall(
+  {
+    region: 'us-central1',
+    enforceAppCheck: true,
+    consumeAppCheckToken: true,
+    maxInstances: 1,
+    timeoutSeconds: 60,
+    memory: '256MiB',
+    secrets: [geminiApiKey]
+  },
+  async (request) => {
+    await requireProtectedUser(request, 'live profile generation');
+    const { answers, draftProfile } = validateProfileRequest(request.data);
+    return generateStructuredGemini(
+      buildProfilePrompt(answers, draftProfile),
+      workFitProfileSchema,
+      1400
+    );
+  }
+);
 
 exports.evaluateJob = onCall(
   {
@@ -198,50 +374,9 @@ exports.evaluateJob = onCall(
     secrets: [geminiApiKey]
   },
   async (request) => {
-    if (!request.auth || !request.auth.uid) {
-      throw new HttpsError('unauthenticated', 'Sign in is required before live evaluation.');
-    }
-    if (request.auth.token?.firebase?.sign_in_provider === 'anonymous') {
-      throw new HttpsError('permission-denied', 'Anonymous accounts cannot run live evaluation.');
-    }
-    if (!request.app) {
-      throw new HttpsError('failed-precondition', 'Firebase App Check is required before live evaluation.');
-    }
-
+    await requireProtectedUser(request, 'live evaluation');
     const { profile, jobAd } = validateRequest(request.data);
-    await enforceDailyQuota(request.auth.uid);
-
-    const apiKey = geminiApiKey.value();
-    if (!apiKey) {
-      throw new HttpsError('failed-precondition', 'GEMINI_API_KEY is not configured on the server.');
-    }
-
-    const model = geminiModel.value();
-    const client = new GoogleGenAI({ apiKey });
-    let response;
-    try {
-      response = await client.models.generateContent({
-        model,
-        contents: buildPrompt(profile, jobAd),
-        config: {
-          responseMimeType: 'application/json',
-          responseJsonSchema: reportSchema,
-          maxOutputTokens: 1800,
-          temperature: 0.2
-        }
-      });
-    } catch (error) {
-      console.error('Gemini request failed', error);
-      throw new HttpsError('internal', 'Live evaluator request failed before producing a report.');
-    }
-
-    let report;
-    try {
-      report = parseGeminiJson(response);
-    } catch (error) {
-      console.error('Failed to parse Gemini structured output', error);
-      throw new HttpsError('internal', 'Live evaluator returned an unreadable report.');
-    }
+    const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800);
 
     return {
       id: crypto.randomUUID(),

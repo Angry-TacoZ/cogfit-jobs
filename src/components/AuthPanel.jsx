@@ -33,12 +33,25 @@ export default function AuthPanel({ compact = false }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    let unsubscribe;
+    let mounted = true;
     try {
-      return watchAuth(setUser);
+      watchAuth((nextUser) => {
+        if (mounted) setUser(nextUser);
+      })
+        .then((nextUnsubscribe) => {
+          unsubscribe = nextUnsubscribe;
+        })
+        .catch((authError) => {
+          if (mounted) setError(friendlyAuthError(authError));
+        });
     } catch (authError) {
       setError(friendlyAuthError(authError));
-      return undefined;
     }
+    return () => {
+      mounted = false;
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const submit = async (event) => {
@@ -70,8 +83,8 @@ export default function AuthPanel({ compact = false }) {
   return (
     <section className={compact ? 'auth-panel compact-auth' : 'auth-panel'}>
       <div>
-        <h2>Sign in to run live analysis</h2>
-        <p>Live evaluation sends your profile and job ad to the protected server function. The browser never sees the model API key.</p>
+        <h2>Sign in to use live Gemini scoring</h2>
+        <p>Profile generation and job evaluation send your inputs to protected server functions. The browser never sees the model API key.</p>
       </div>
       <form onSubmit={submit} className="auth-form">
         <label className="field">

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Button from '../components/Button';
-import { profileSections, questionCount, generateWorkFitProfile, needsAdaptiveQuestions } from '../lib/profileScoring';
+import AuthPanel from '../components/AuthPanel';
+import { profileSections, questionCount, needsAdaptiveQuestions } from '../lib/profileScoring';
 import { llmAdapter } from '../lib/llmAdapter';
 import { loadProfileAnswers, saveGeneratedProfile, saveProfileAnswers } from '../lib/storage';
 import { sampleProfileAnswers } from '../data/sampleProfiles';
@@ -11,6 +12,7 @@ export default function ProfileIntake({ go }) {
   const [profile, setProfile] = useState(null);
   const [adaptive, setAdaptive] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const section = profileSections[sectionIndex];
   const answeredCount = useMemo(() => Object.values(answers).filter((value) => String(value || '').trim()).length, [answers]);
   const progress = Math.round((answeredCount / questionCount) * 100);
@@ -22,12 +24,18 @@ export default function ProfileIntake({ go }) {
   };
 
   const saveProfile = async () => {
+    setError('');
     setLoading(true);
-    const generated = await llmAdapter.generateProfileSummary(answers);
-    saveGeneratedProfile(generated);
-    setProfile(generated);
-    setAdaptive(needsAdaptiveQuestions(generated) ? await llmAdapter.generateAdaptiveQuestions(generated, null, generated.confidence_score) : []);
-    setLoading(false);
+    try {
+      const generated = await llmAdapter.generateProfileSummary(answers);
+      saveGeneratedProfile(generated);
+      setProfile(generated);
+      setAdaptive(needsAdaptiveQuestions(generated) ? await llmAdapter.generateAdaptiveQuestions(generated, null, generated.confidence_score) : []);
+    } catch (profileError) {
+      setError(profileError?.message || 'The final profile generator failed. Your answers are still saved locally.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const useSample = () => {
@@ -44,10 +52,12 @@ export default function ProfileIntake({ go }) {
         </div>
         <Button variant="secondary" onClick={useSample}>Load sample profile</Button>
       </div>
+      <AuthPanel compact />
       <div className="progress-wrap">
         <div className="progress-label"><span>{answeredCount} of {questionCount} answered</span><strong>{progress}%</strong></div>
         <div className="progress"><span style={{ width: `${progress}%` }} /></div>
       </div>
+      {error && <div className="error">{error}</div>}
       <section className="form-panel">
         <h2>{section.title}</h2>
         {section.questions.map(([id, label]) => (
@@ -61,7 +71,7 @@ export default function ProfileIntake({ go }) {
           {sectionIndex < profileSections.length - 1 ? (
             <Button onClick={() => setSectionIndex(sectionIndex + 1)}>Next section</Button>
           ) : (
-            <Button onClick={saveProfile} disabled={loading}>{loading ? 'Building profile...' : 'Generate work-fit profile'}</Button>
+            <Button onClick={saveProfile} disabled={loading}>{loading ? 'Generating with Gemini...' : 'Generate final work-fit profile'}</Button>
           )}
         </div>
       </section>
