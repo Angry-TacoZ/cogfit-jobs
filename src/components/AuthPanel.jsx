@@ -83,8 +83,8 @@ export default function AuthPanel({ compact = false }) {
   return (
     <section className={compact ? 'auth-panel compact-auth' : 'auth-panel'}>
       <div>
-        <h2>Sign in to use live Gemini scoring</h2>
-        <p>Profile generation and job evaluation send your inputs to protected server functions. The browser never sees the model API key.</p>
+        <h2>Sign in to save your profile</h2>
+        <p>Your profile, job evaluations, and feedback are kept under your account so you can reuse them across job ads.</p>
         {mode === 'create' && (
           <p className="privacy-note">
             By creating an account, you agree that CogFit Jobs will secure your profile, job evaluations, and feedback under your account and use that data to improve the product.

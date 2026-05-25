@@ -363,6 +363,101 @@ exports.generateProfile = onCall(
   }
 );
 
+exports.saveProfile = onCall(
+  {
+    region: 'us-central1',
+    enforceAppCheck: true,
+    consumeAppCheckToken: true,
+    maxInstances: 1,
+    timeoutSeconds: 30,
+    memory: '256MiB'
+  },
+  async (request) => {
+    await requireProtectedUser(request, 'profile storage');
+    const { profile, answers } = request.data || {};
+    if (!profile || typeof profile !== 'object') {
+      throw new HttpsError('invalid-argument', 'A profile object is required.');
+    }
+    if (JSON.stringify(profile).length > MAX_PROFILE_CHARS) {
+      throw new HttpsError('invalid-argument', `Profile payload is too large. Limit it to ${MAX_PROFILE_CHARS} characters.`);
+    }
+    if (answers && JSON.stringify(answers).length > MAX_PROFILE_ANSWERS_CHARS) {
+      throw new HttpsError('invalid-argument', `Profile answers are too large. Limit them to ${MAX_PROFILE_ANSWERS_CHARS} characters.`);
+    }
+
+    const profileId = profile.profile_id || crypto.randomUUID();
+    const profileWithId = { ...profile, profile_id: profileId };
+    await db.doc(`users/${request.auth.uid}/profiles/${profileId}`).set({
+      profile: profileWithId,
+      answers: answers || {},
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    return profileWithId;
+  }
+);
+
+exports.saveEvaluation = onCall(
+  {
+    region: 'us-central1',
+    enforceAppCheck: true,
+    consumeAppCheckToken: true,
+    maxInstances: 1,
+    timeoutSeconds: 30,
+    memory: '256MiB'
+  },
+  async (request) => {
+    await requireProtectedUser(request, 'job evaluation storage');
+    const { profile, evaluation, jobAd } = request.data || {};
+    if (!profile || typeof profile !== 'object' || !evaluation || typeof evaluation !== 'object') {
+      throw new HttpsError('invalid-argument', 'Profile and evaluation objects are required.');
+    }
+    if (JSON.stringify(profile).length > MAX_PROFILE_CHARS || JSON.stringify(evaluation).length > MAX_PROFILE_CHARS) {
+      throw new HttpsError('invalid-argument', 'Profile or evaluation payload is too large.');
+    }
+
+    const profileId = profile.profile_id || 'default-profile';
+    const evaluationId = evaluation.id || crypto.randomUUID();
+    const evaluationWithId = { ...evaluation, id: evaluationId, profile_id: profileId };
+    const profileRef = db.doc(`users/${request.auth.uid}/profiles/${profileId}`);
+    await profileRef.set({
+      profile: { ...profile, profile_id: profileId },
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    await profileRef.collection('evaluations').doc(evaluationId).set({
+      evaluation: evaluationWithId,
+      jobAd: jobAd || {},
+      createdAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    return evaluationWithId;
+  }
+);
+
+exports.saveFeedback = onCall(
+  {
+    region: 'us-central1',
+    enforceAppCheck: true,
+    consumeAppCheckToken: true,
+    maxInstances: 1,
+    timeoutSeconds: 30,
+    memory: '256MiB'
+  },
+  async (request) => {
+    await requireProtectedUser(request, 'feedback storage');
+    const { profileId, evaluationId, value } = request.data || {};
+    if (!profileId || !evaluationId || !value) {
+      throw new HttpsError('invalid-argument', 'Profile ID, evaluation ID, and feedback value are required.');
+    }
+    await db.collection(`users/${request.auth.uid}/profiles/${profileId}/feedback`).add({
+      evaluationId: String(evaluationId),
+      value: String(value),
+      createdAt: FieldValue.serverTimestamp()
+    });
+    return { ok: true };
+  }
+);
+
 exports.evaluateJob = onCall(
   {
     region: 'us-central1',

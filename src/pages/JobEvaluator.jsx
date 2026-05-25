@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Button from '../components/Button';
 import AuthPanel from '../components/AuthPanel';
 import { sampleJobs } from '../data/sampleJobs';
+import { sampleEvaluations } from '../data/sampleEvaluations';
 import { llmAdapter } from '../lib/llmAdapter';
 import { loadGeneratedProfile, saveEvaluation } from '../lib/storage';
 import { saveCloudEvaluation } from '../lib/firebaseClient';
@@ -47,6 +48,12 @@ export default function JobEvaluator({ go }) {
       return emptyJob;
     }
   });
+  const [sampleId, setSampleId] = useState(() => {
+    const pending = sessionStorage.getItem('cogfit.pendingSampleId');
+    if (!pending) return '';
+    sessionStorage.removeItem('cogfit.pendingSampleId');
+    return pending;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const profile = loadGeneratedProfile();
@@ -59,14 +66,18 @@ export default function JobEvaluator({ go }) {
       description: value,
       notes: ''
     });
+    setSampleId('');
   };
 
-  const loadSample = (sample) => setJob({
-    title: sample.title,
-    company: sample.company,
-    description: combinedJobText(sample),
-    notes: ''
-  });
+  const loadSample = (sample) => {
+    setSampleId(sample.id);
+    setJob({
+      title: sample.title,
+      company: sample.company,
+      description: combinedJobText(sample),
+      notes: ''
+    });
+  };
 
   const evaluate = async () => {
     setError('');
@@ -76,6 +87,18 @@ export default function JobEvaluator({ go }) {
     }
     if (!job.description.trim()) {
       setError('Paste a job ad before generating a report.');
+      return;
+    }
+    if (sampleId && sampleEvaluations[sampleId]) {
+      saveEvaluation({
+        ...sampleEvaluations[sampleId],
+        id: `${sampleEvaluations[sampleId].id}-${Date.now()}`
+      });
+      go('results');
+      return;
+    }
+    if (!profile) {
+      setError('Build or load a work-fit profile before evaluating a job ad.');
       return;
     }
     setLoading(true);
@@ -106,6 +129,7 @@ export default function JobEvaluator({ go }) {
           <Button key={sample.id} variant="secondary" onClick={() => loadSample(sample)}>{sample.label}: {sample.title}</Button>
         ))}
       </div>
+      {sampleId && <div className="success">Sample report ready. Click Generate scored report to view it without signing in.</div>}
       {error && <div className="error">{error}</div>}
       <section className="form-panel">
         <label className="field wide">

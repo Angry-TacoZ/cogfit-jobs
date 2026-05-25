@@ -8,6 +8,7 @@ export default function HomePage({ go }) {
   const runSample = () => {
     saveGeneratedProfile(sampleProfile);
     sessionStorage.setItem('cogfit.pendingJob', JSON.stringify(sampleJobs[0]));
+    sessionStorage.setItem('cogfit.pendingSampleId', sampleJobs[0].id);
     go('evaluator');
   };
 
@@ -58,7 +59,7 @@ export default function HomePage({ go }) {
           </article>
           <article>
             <h3>Reusable profile</h3>
-            <p>Save your work-fit profile locally and run another job ad without rebuilding everything.</p>
+            <p>Save your work-fit profile to your account and run another job ad without rebuilding everything.</p>
           </article>
         </div>
       </section>

@@ -8,14 +8,6 @@ import {
   signOut
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import {
-  addDoc,
-  collection,
-  doc,
-  getFirestore,
-  serverTimestamp,
-  setDoc
-} from 'firebase/firestore';
 
 let app;
 let appPromise;
@@ -75,10 +67,6 @@ export async function getFirebaseAuth() {
   return getAuth(await getFirebaseApp());
 }
 
-export async function getFirebaseDb() {
-  return getFirestore(await getFirebaseApp());
-}
-
 async function requireCurrentUser(action) {
   const auth = await getFirebaseAuth();
   if (!auth.currentUser) {
@@ -122,44 +110,27 @@ export async function callGenerateProfile(answers, draftProfile) {
 }
 
 export async function saveCloudProfile(profile, answers = {}) {
-  const user = await requireCurrentUser('saving your profile');
-  const db = await getFirebaseDb();
-  const profileId = profile.profile_id || crypto.randomUUID();
-  const profileWithId = { ...profile, profile_id: profileId };
-  await setDoc(doc(db, 'users', user.uid, 'profiles', profileId), {
-    profile: profileWithId,
-    answers,
-    updatedAt: serverTimestamp(),
-    createdAt: serverTimestamp()
-  }, { merge: true });
-  return profileWithId;
+  await startAppCheck();
+  await requireCurrentUser('saving your profile');
+  const functions = getFunctions(await getFirebaseApp(), 'us-central1');
+  const saveProfile = httpsCallable(functions, 'saveProfile', { limitedUseAppCheckTokens: true });
+  const response = await saveProfile({ profile, answers });
+  return response.data;
 }
 
 export async function saveCloudEvaluation(profile, evaluation, jobAd) {
-  const user = await requireCurrentUser('saving the job evaluation');
-  const db = await getFirebaseDb();
-  const profileId = profile.profile_id || 'default-profile';
-  const evaluationId = evaluation.id || crypto.randomUUID();
-  const evaluationWithId = { ...evaluation, id: evaluationId, profile_id: profileId };
-  await setDoc(doc(db, 'users', user.uid, 'profiles', profileId), {
-    profile: { ...profile, profile_id: profileId },
-    updatedAt: serverTimestamp(),
-    createdAt: serverTimestamp()
-  }, { merge: true });
-  await setDoc(doc(db, 'users', user.uid, 'profiles', profileId, 'evaluations', evaluationId), {
-    evaluation: evaluationWithId,
-    jobAd,
-    createdAt: serverTimestamp()
-  }, { merge: true });
-  return evaluationWithId;
+  await startAppCheck();
+  await requireCurrentUser('saving the job evaluation');
+  const functions = getFunctions(await getFirebaseApp(), 'us-central1');
+  const saveEvaluation = httpsCallable(functions, 'saveEvaluation', { limitedUseAppCheckTokens: true });
+  const response = await saveEvaluation({ profile, evaluation, jobAd });
+  return response.data;
 }
 
 export async function saveCloudFeedback(profileId, evaluationId, value) {
-  const user = await requireCurrentUser('saving feedback');
-  const db = await getFirebaseDb();
-  await addDoc(collection(db, 'users', user.uid, 'profiles', profileId, 'feedback'), {
-    evaluationId,
-    value,
-    createdAt: serverTimestamp()
-  });
+  await startAppCheck();
+  await requireCurrentUser('saving feedback');
+  const functions = getFunctions(await getFirebaseApp(), 'us-central1');
+  const saveFeedback = httpsCallable(functions, 'saveFeedback', { limitedUseAppCheckTokens: true });
+  await saveFeedback({ profileId, evaluationId, value });
 }
