@@ -3,7 +3,8 @@ import Button from '../components/Button';
 import ScoreCard from '../components/ScoreCard';
 import SectionPanel from '../components/SectionPanel';
 import { evaluationToMarkdown } from '../lib/evaluator';
-import { loadEvaluations, saveFeedback } from '../lib/storage';
+import { loadGeneratedProfile, loadEvaluations, saveFeedback } from '../lib/storage';
+import { saveCloudFeedback } from '../lib/firebaseClient';
 
 const feedbackOptions = ['accurate', 'too optimistic', 'too pessimistic', 'missed key constraint', 'misunderstood my experience'];
 
@@ -11,6 +12,7 @@ export default function ResultsPage({ go }) {
   const [evaluations] = useState(loadEvaluations());
   const [selectedId, setSelectedId] = useState(evaluations[0]?.id);
   const [copied, setCopied] = useState('');
+  const profile = loadGeneratedProfile();
   const evaluation = evaluations.find((item) => item.id === selectedId) || evaluations[0];
 
   if (!evaluation) {
@@ -50,8 +52,16 @@ export default function ResultsPage({ go }) {
     link.click();
     URL.revokeObjectURL(url);
   };
-  const feedback = (value) => {
+  const feedback = async (value) => {
     saveFeedback(evaluation.id, value);
+    if (profile?.profile_id && evaluation?.id) {
+      try {
+        await saveCloudFeedback(profile.profile_id, evaluation.id, value);
+      } catch {
+        setCopied('Feedback saved locally. Cloud feedback sync failed.');
+        return;
+      }
+    }
     setCopied('Feedback captured. Future versions should use this to adjust your profile and scoring weights.');
   };
 

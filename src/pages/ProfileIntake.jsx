@@ -5,6 +5,7 @@ import { profileSections, questionCount, needsAdaptiveQuestions } from '../lib/p
 import { llmAdapter } from '../lib/llmAdapter';
 import { loadProfileAnswers, saveGeneratedProfile, saveProfileAnswers } from '../lib/storage';
 import { sampleProfileAnswers } from '../data/sampleProfiles';
+import { saveCloudProfile } from '../lib/firebaseClient';
 
 export default function ProfileIntake({ go }) {
   const [answers, setAnswers] = useState(loadProfileAnswers());
@@ -28,9 +29,10 @@ export default function ProfileIntake({ go }) {
     setLoading(true);
     try {
       const generated = await llmAdapter.generateProfileSummary(answers);
-      saveGeneratedProfile(generated);
-      setProfile(generated);
-      setAdaptive(needsAdaptiveQuestions(generated) ? await llmAdapter.generateAdaptiveQuestions(generated, null, generated.confidence_score) : []);
+      const savedProfile = await saveCloudProfile(generated, answers);
+      saveGeneratedProfile(savedProfile);
+      setProfile(savedProfile);
+      setAdaptive(needsAdaptiveQuestions(savedProfile) ? await llmAdapter.generateAdaptiveQuestions(savedProfile, null, savedProfile.confidence_score) : []);
     } catch (profileError) {
       setError(profileError?.message || 'The final profile generator failed. Your answers are still saved locally.');
     } finally {

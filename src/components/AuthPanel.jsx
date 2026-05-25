@@ -85,6 +85,11 @@ export default function AuthPanel({ compact = false }) {
       <div>
         <h2>Sign in to use live Gemini scoring</h2>
         <p>Profile generation and job evaluation send your inputs to protected server functions. The browser never sees the model API key.</p>
+        {mode === 'create' && (
+          <p className="privacy-note">
+            By creating an account, you agree that CogFit Jobs will secure your profile, job evaluations, and feedback under your account and use that data to improve the product.
+          </p>
+        )}
       </div>
       <form onSubmit={submit} className="auth-form">
         <label className="field">

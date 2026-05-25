@@ -4,8 +4,31 @@ import AuthPanel from '../components/AuthPanel';
 import { sampleJobs } from '../data/sampleJobs';
 import { llmAdapter } from '../lib/llmAdapter';
 import { loadGeneratedProfile, saveEvaluation } from '../lib/storage';
+import { saveCloudEvaluation } from '../lib/firebaseClient';
 
 const emptyJob = { title: '', company: '', description: '', notes: '' };
+
+function combinedJobText(job) {
+  return [
+    job.title,
+    job.company,
+    job.description,
+    job.notes && `Interest notes: ${job.notes}`
+  ].filter(Boolean).join('\n\n');
+}
+
+function inferJobMeta(text) {
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const title = lines[0]?.slice(0, 160) || 'Pasted job ad';
+  const companyLine = lines.find((line) => /^company\s*:/i.test(line) || /^at\s+/i.test(line));
+  const company = companyLine
+    ? companyLine.replace(/^company\s*:/i, '').replace(/^at\s+/i, '').trim().slice(0, 160)
+    : 'Unknown company';
+  return { title, company };
+}
 
 export default function JobEvaluator({ go }) {
   const [job, setJob] = useState(() => {
@@ -28,13 +51,21 @@ export default function JobEvaluator({ go }) {
   const [error, setError] = useState('');
   const profile = loadGeneratedProfile();
 
-  const update = (key, value) => setJob((current) => ({ ...current, [key]: value }));
+  const updatePastedAd = (value) => {
+    const meta = inferJobMeta(value);
+    setJob({
+      title: meta.title,
+      company: meta.company,
+      description: value,
+      notes: ''
+    });
+  };
 
   const loadSample = (sample) => setJob({
     title: sample.title,
     company: sample.company,
-    description: sample.description,
-    notes: sample.notes
+    description: combinedJobText(sample),
+    notes: ''
   });
 
   const evaluate = async () => {
@@ -43,14 +74,15 @@ export default function JobEvaluator({ go }) {
       setError('Build or load a work-fit profile before evaluating a job ad.');
       return;
     }
-    if (!job.title.trim() || !job.description.trim()) {
-      setError('Add at least a job title and job description.');
+    if (!job.description.trim()) {
+      setError('Paste a job ad before generating a report.');
       return;
     }
     setLoading(true);
     try {
       const evaluation = await llmAdapter.evaluateJob(profile, job);
-      saveEvaluation(evaluation);
+      const savedEvaluation = await saveCloudEvaluation(profile, evaluation, job);
+      saveEvaluation(savedEvaluation);
       go('results');
     } catch (evaluationError) {
       setError(evaluationError?.message || 'The evaluator failed. Your profile and job text are still saved locally if you entered them.');
@@ -75,22 +107,15 @@ export default function JobEvaluator({ go }) {
         ))}
       </div>
       {error && <div className="error">{error}</div>}
-      <section className="form-panel two-col">
-        <label className="field">
-          <span>Job title</span>
-          <input value={job.title} onChange={(event) => update('title', event.target.value)} />
-        </label>
-        <label className="field">
-          <span>Company</span>
-          <input value={job.company} onChange={(event) => update('company', event.target.value)} />
-        </label>
+      <section className="form-panel">
         <label className="field wide">
-          <span>Job description text</span>
-          <textarea rows={13} value={job.description} onChange={(event) => update('description', event.target.value)} />
-        </label>
-        <label className="field wide">
-          <span>Optional notes about why you are interested</span>
-          <textarea rows={4} value={job.notes} onChange={(event) => update('notes', event.target.value)} />
+          <span>Paste the full job ad</span>
+          <textarea
+            rows={18}
+            value={job.description}
+            onChange={(event) => updatePastedAd(event.target.value)}
+            placeholder="Paste the title, company, responsibilities, requirements, compensation, location, and any notes about why you are interested."
+          />
         </label>
         <div className="wide">
           <Button onClick={evaluate} disabled={loading}>{loading ? 'Evaluating...' : 'Generate scored report'}</Button>

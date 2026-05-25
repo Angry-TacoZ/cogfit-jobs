@@ -8,6 +8,14 @@ import {
   signOut
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import {
+  addDoc,
+  collection,
+  doc,
+  getFirestore,
+  serverTimestamp,
+  setDoc
+} from 'firebase/firestore';
 
 let app;
 let appPromise;
@@ -67,6 +75,18 @@ export async function getFirebaseAuth() {
   return getAuth(await getFirebaseApp());
 }
 
+export async function getFirebaseDb() {
+  return getFirestore(await getFirebaseApp());
+}
+
+async function requireCurrentUser(action) {
+  const auth = await getFirebaseAuth();
+  if (!auth.currentUser) {
+    throw new Error(`Sign in before ${action}.`);
+  }
+  return auth.currentUser;
+}
+
 export async function watchAuth(callback) {
   return onAuthStateChanged(await getFirebaseAuth(), callback);
 }
@@ -85,10 +105,7 @@ export async function signOutCurrentUser() {
 
 export async function callEvaluateJob(profile, jobAd) {
   await startAppCheck();
-  const auth = await getFirebaseAuth();
-  if (!auth.currentUser) {
-    throw new Error('Sign in before running live analysis.');
-  }
+  await requireCurrentUser('running live analysis');
   const functions = getFunctions(await getFirebaseApp(), 'us-central1');
   const evaluateJob = httpsCallable(functions, 'evaluateJob', { limitedUseAppCheckTokens: true });
   const response = await evaluateJob({ profile, jobAd });
@@ -97,12 +114,52 @@ export async function callEvaluateJob(profile, jobAd) {
 
 export async function callGenerateProfile(answers, draftProfile) {
   await startAppCheck();
-  const auth = await getFirebaseAuth();
-  if (!auth.currentUser) {
-    throw new Error('Sign in before generating the final work-fit profile.');
-  }
+  await requireCurrentUser('generating the final work-fit profile');
   const functions = getFunctions(await getFirebaseApp(), 'us-central1');
   const generateProfile = httpsCallable(functions, 'generateProfile', { limitedUseAppCheckTokens: true });
   const response = await generateProfile({ answers, draftProfile });
   return response.data;
+}
+
+export async function saveCloudProfile(profile, answers = {}) {
+  const user = await requireCurrentUser('saving your profile');
+  const db = await getFirebaseDb();
+  const profileId = profile.profile_id || crypto.randomUUID();
+  const profileWithId = { ...profile, profile_id: profileId };
+  await setDoc(doc(db, 'users', user.uid, 'profiles', profileId), {
+    profile: profileWithId,
+    answers,
+    updatedAt: serverTimestamp(),
+    createdAt: serverTimestamp()
+  }, { merge: true });
+  return profileWithId;
+}
+
+export async function saveCloudEvaluation(profile, evaluation, jobAd) {
+  const user = await requireCurrentUser('saving the job evaluation');
+  const db = await getFirebaseDb();
+  const profileId = profile.profile_id || 'default-profile';
+  const evaluationId = evaluation.id || crypto.randomUUID();
+  const evaluationWithId = { ...evaluation, id: evaluationId, profile_id: profileId };
+  await setDoc(doc(db, 'users', user.uid, 'profiles', profileId), {
+    profile: { ...profile, profile_id: profileId },
+    updatedAt: serverTimestamp(),
+    createdAt: serverTimestamp()
+  }, { merge: true });
+  await setDoc(doc(db, 'users', user.uid, 'profiles', profileId, 'evaluations', evaluationId), {
+    evaluation: evaluationWithId,
+    jobAd,
+    createdAt: serverTimestamp()
+  }, { merge: true });
+  return evaluationWithId;
+}
+
+export async function saveCloudFeedback(profileId, evaluationId, value) {
+  const user = await requireCurrentUser('saving feedback');
+  const db = await getFirebaseDb();
+  await addDoc(collection(db, 'users', user.uid, 'profiles', profileId, 'feedback'), {
+    evaluationId,
+    value,
+    createdAt: serverTimestamp()
+  });
 }

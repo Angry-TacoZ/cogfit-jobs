@@ -69,6 +69,10 @@ export default function App() {
       <main>
         <Page go={go} profile={profile} />
       </main>
+      <footer className="site-footer">
+        <strong>James Lane</strong>
+        <span>Created 2026</span>
+      </footer>
     </div>
   );
 }

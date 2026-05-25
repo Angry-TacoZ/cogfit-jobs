@@ -15,7 +15,7 @@ export default function HomePage({ go }) {
     <div className="home-grid">
       <section className="hero">
         <div>
-          <h1>Job fit analysis for people who do not fit clean resume boxes.</h1>
+          <h1>CogFit Jobs</h1>
           <p className="subhead">
             CogFit Jobs compares a job ad against how you actually work, what drains you, what you have built, and what evidence you can show.
           </p>

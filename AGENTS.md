@@ -11,6 +11,7 @@ Rules:
 - Require signed-in non-anonymous users for live profile generation and job evaluation.
 - Require Firebase App Check for live profile generation and job evaluation.
 - Keep request size limits, per-user quota, global quota, max instance cap, timeout, and model output cap in place.
+- Store user profile data only under `/users/{uid}` and keep Firestore rules user-scoped.
 - Do not fabricate user data.
 - If the evaluator lacks evidence, lower confidence and say what is missing.
 - Avoid em dashes in visible copy.
