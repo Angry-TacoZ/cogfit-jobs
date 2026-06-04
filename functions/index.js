@@ -340,7 +340,49 @@ function apiErrorSummary(error) {
   return {
     name: error?.name,
     status: error?.status,
+    code: error?.code,
     message: String(error?.message || '').slice(0, 500)
+  };
+}
+
+function classifyGeminiFailures(failures) {
+  const statusValues = failures.map((failure) => Number(failure.error?.status)).filter(Boolean);
+  const messages = failures.map((failure) => String(failure.error?.message || '').toLowerCase()).join('\n');
+
+  if (statusValues.some((status) => status === 401 || status === 403) || messages.includes('permission') || messages.includes('api key')) {
+    return {
+      code: 'failed-precondition',
+      message: 'Gemini rejected the server request. The API key, billing, or model API permissions may need to be checked.'
+    };
+  }
+  if (statusValues.some((status) => status === 404) || messages.includes('not found')) {
+    return {
+      code: 'failed-precondition',
+      message: 'The configured Gemini model is not available to this API key yet.'
+    };
+  }
+  if (statusValues.some((status) => status === 429) || messages.includes('quota')) {
+    return {
+      code: 'resource-exhausted',
+      message: 'Gemini quota or rate limit was reached. Try again later.'
+    };
+  }
+  if (statusValues.some((status) => status >= 500) || messages.includes('unavailable')) {
+    return {
+      code: 'unavailable',
+      message: 'Gemini was temporarily unavailable while generating the report. Try again in a few minutes.'
+    };
+  }
+  if (failures.some((failure) => failure.error?.name === 'SyntaxError' || String(failure.error?.message || '').includes('JSON'))) {
+    return {
+      code: 'internal',
+      message: 'Gemini returned output that could not be parsed as a scored report. Try again with slightly shorter answers.'
+    };
+  }
+
+  return {
+    code: 'failed-precondition',
+    message: 'Live Gemini generation failed after retrying supported JSON output modes.'
   };
 }
 
@@ -408,10 +450,8 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
     }
   }
 
-  throw new HttpsError(
-    'failed-precondition',
-    'Live Gemini generation failed. The model or structured output mode may not be available for this API key yet.'
-  );
+  const classified = classifyGeminiFailures(failures);
+  throw new HttpsError(classified.code, classified.message);
 }
 
 exports.generateProfile = onCall(

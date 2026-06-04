@@ -76,11 +76,38 @@ async function requireCurrentUser(action) {
 }
 
 function protectedApiError(error) {
+  const code = String(error?.code || '').replace(/^functions\//, '');
   const message = error?.message || '';
   if (message.includes('appCheck') || message.includes('AppCheck') || message.includes('403')) {
     return new Error('The protected live evaluator rejected this request. Try again from a normal browser window. If it still fails, contact James so the App Check domain settings can be verified.');
   }
-  return error;
+
+  if (code === 'unauthenticated') {
+    return new Error('Sign in again before using live scoring. Your session may have expired.');
+  }
+  if (code === 'permission-denied') {
+    return new Error('This account is not allowed to use that protected action.');
+  }
+  if (code === 'resource-exhausted') {
+    return new Error(message || 'The live scoring quota has been reached. Try again later.');
+  }
+  if (code === 'invalid-argument') {
+    return new Error(message || 'The evaluator rejected the input. Check for missing or unusually long answers.');
+  }
+  if (code === 'failed-precondition') {
+    return new Error(message || 'The live evaluator is not fully configured yet.');
+  }
+  if (code === 'deadline-exceeded') {
+    return new Error('The live evaluator timed out before finishing. Try a shorter job ad or try again.');
+  }
+  if (code === 'unavailable') {
+    return new Error('The live evaluator is temporarily unavailable. Try again in a few minutes.');
+  }
+  if (code === 'internal' || message === 'internal') {
+    return new Error('The live evaluator hit a server error while generating the report. Your answers are saved, so try again once. If it repeats, contact James with what step failed.');
+  }
+
+  return new Error(message || 'The protected live evaluator failed. Try again, or contact James if it repeats.');
 }
 
 async function runProtectedCall(callback) {
