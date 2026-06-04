@@ -7,6 +7,7 @@ import ResultsPage from './pages/ResultsPage';
 import Methodology from './pages/Methodology';
 import DataNotice from './pages/DataNotice';
 import { loadGeneratedProfile } from './lib/storage';
+import cogfitMark from './assets/cogfit-jobs-mark.png';
 
 const routes = {
   home: HomePage,
@@ -54,7 +55,9 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <button className="brand" onClick={() => go('home')} aria-label="Go to home">
-          <span className="brand-mark">CF</span>
+          <span className="brand-mark">
+            <img src={cogfitMark} alt="" aria-hidden="true" />
+          </span>
           <span>
             <strong>CogFit Jobs</strong>
             <small>Work-fit evaluator</small>
