@@ -375,7 +375,7 @@ function classifyGeminiFailures(failures) {
   }
   if (failures.some((failure) => failure.error?.name === 'SyntaxError' || String(failure.error?.message || '').includes('JSON'))) {
     return {
-      code: 'internal',
+      code: 'failed-precondition',
       message: 'Gemini returned output that could not be parsed as a scored report. Try again with slightly shorter answers.'
     };
   }

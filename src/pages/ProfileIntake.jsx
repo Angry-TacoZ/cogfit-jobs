@@ -14,6 +14,7 @@ export default function ProfileIntake({ go }) {
   const [adaptive, setAdaptive] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const section = profileSections[sectionIndex];
   const answeredCount = useMemo(() => Object.values(answers).filter((value) => String(value || '').trim()).length, [answers]);
   const progress = Math.round((answeredCount / questionCount) * 100);
@@ -26,13 +27,28 @@ export default function ProfileIntake({ go }) {
 
   const saveProfile = async () => {
     setError('');
+    setNotice('');
     setLoading(true);
     try {
       const generated = await llmAdapter.generateProfileSummary(answers);
-      const savedProfile = await saveCloudProfile(generated, answers);
-      saveGeneratedProfile(savedProfile);
-      setProfile(savedProfile);
-      setAdaptive(needsAdaptiveQuestions(savedProfile) ? await llmAdapter.generateAdaptiveQuestions(savedProfile, null, savedProfile.confidence_score) : []);
+      saveGeneratedProfile(generated);
+      setProfile(generated);
+      setAdaptive(needsAdaptiveQuestions(generated) ? await llmAdapter.generateAdaptiveQuestions(generated, null, generated.confidence_score) : []);
+
+      if (generated.profile_generation_mode === 'local_first_pass') {
+        setNotice(`Profile created with local first-pass scoring because live Gemini profile generation failed. ${generated.live_profile_error}`);
+      }
+
+      try {
+        const savedProfile = await saveCloudProfile(generated, answers);
+        saveGeneratedProfile(savedProfile);
+        setProfile(savedProfile);
+      } catch (cloudSaveError) {
+        setNotice((currentNotice) => [
+          currentNotice,
+          `Profile is usable locally, but cloud save failed. ${cloudSaveError?.message || 'Try again later.'}`
+        ].filter(Boolean).join(' '));
+      }
     } catch (profileError) {
       setError(profileError?.message || 'The final profile generator failed. Your answers are still saved locally.');
     } finally {
@@ -59,6 +75,7 @@ export default function ProfileIntake({ go }) {
         <div className="progress-label"><span>{answeredCount} of {questionCount} answered</span><strong>{progress}%</strong></div>
         <div className="progress"><span style={{ width: `${progress}%` }} /></div>
       </div>
+      {notice && <div className="success">{notice}</div>}
       {error && <div className="error">{error}</div>}
       <section className="form-panel">
         <h2>{section.title}</h2>
