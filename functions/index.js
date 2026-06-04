@@ -12,6 +12,7 @@ const geminiModel = defineString('GEMINI_MODEL', { default: 'gemini-3.5-flash' }
 const adminEmails = defineString('ADMIN_EMAILS', { default: '' });
 const userDailyLimit = defineInt('USER_DAILY_EVALUATION_LIMIT', { default: 5 });
 const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 50 });
+const FALLBACK_GEMINI_MODEL = 'gemini-2.5-flash';
 
 const MAX_DESCRIPTION_CHARS = 12000;
 const MAX_PROFILE_CHARS = 16000;
@@ -315,7 +316,9 @@ function parseGeminiJson(response) {
     throw new Error('Gemini response did not include output text.');
   }
 
-  return JSON.parse(response.text);
+  const text = response.text.trim();
+  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return JSON.parse(fenced ? fenced[1] : text);
 }
 
 async function requireProtectedUser(request, actionLabel, { consumeQuota = false } = {}) {
@@ -333,6 +336,49 @@ async function requireProtectedUser(request, actionLabel, { consumeQuota = false
   }
 }
 
+function apiErrorSummary(error) {
+  return {
+    name: error?.name,
+    status: error?.status,
+    message: String(error?.message || '').slice(0, 500)
+  };
+}
+
+function plainJsonPrompt(prompt, schema) {
+  return [
+    prompt,
+    '',
+    'Return only valid JSON. Do not wrap it in Markdown.',
+    'The JSON must match this schema:',
+    JSON.stringify(schema)
+  ].join('\n');
+}
+
+async function callGeminiJson(client, model, prompt, schema, maxOutputTokens, schemaMode) {
+  const config = {
+    responseMimeType: 'application/json',
+    maxOutputTokens,
+    temperature: 0.2
+  };
+
+  if (schemaMode === 'jsonSchema') {
+    config.responseJsonSchema = schema;
+  }
+  if (schemaMode === 'schema') {
+    config.responseSchema = schema;
+  }
+
+  const contents = schemaMode === 'plain'
+    ? plainJsonPrompt(prompt, schema)
+    : prompt;
+
+  return client.models.generateContent({
+    model,
+    contents,
+    config
+  });
+}
+
 async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
   const apiKey = geminiApiKey.value();
   if (!apiKey) {
@@ -341,29 +387,31 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
 
   const model = geminiModel.value();
   const client = new GoogleGenAI({ apiKey });
-  let response;
-  try {
-    response = await client.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseJsonSchema: schema,
-        maxOutputTokens,
-        temperature: 0.2
-      }
-    });
-  } catch (error) {
-    console.error('Gemini request failed', error);
-    throw new HttpsError('internal', 'Live evaluator request failed before producing a report.');
+  const attempts = [
+    { model, schemaMode: 'jsonSchema' },
+    { model, schemaMode: 'schema' },
+    { model, schemaMode: 'plain' },
+    ...(model === FALLBACK_GEMINI_MODEL ? [] : [
+      { model: FALLBACK_GEMINI_MODEL, schemaMode: 'jsonSchema' },
+      { model: FALLBACK_GEMINI_MODEL, schemaMode: 'plain' }
+    ])
+  ];
+
+  const failures = [];
+  for (const attempt of attempts) {
+    try {
+      const response = await callGeminiJson(client, attempt.model, prompt, schema, maxOutputTokens, attempt.schemaMode);
+      return parseGeminiJson(response);
+    } catch (error) {
+      failures.push({ ...attempt, error: apiErrorSummary(error) });
+      console.error('Gemini JSON generation attempt failed', failures[failures.length - 1]);
+    }
   }
 
-  try {
-    return parseGeminiJson(response);
-  } catch (error) {
-    console.error('Failed to parse Gemini structured output', error);
-    throw new HttpsError('internal', 'Live evaluator returned an unreadable report.');
-  }
+  throw new HttpsError(
+    'failed-precondition',
+    'Live Gemini generation failed. The model or structured output mode may not be available for this API key yet.'
+  );
 }
 
 exports.generateProfile = onCall(
