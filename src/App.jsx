@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { BriefcaseBusiness, ClipboardCheck, Home, Info, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, ClipboardCheck, Home, Info, ShieldCheck, UserRound } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import ProfileIntake from './pages/ProfileIntake';
 import JobEvaluator from './pages/JobEvaluator';
 import ResultsPage from './pages/ResultsPage';
 import Methodology from './pages/Methodology';
+import DataNotice from './pages/DataNotice';
 import { loadGeneratedProfile } from './lib/storage';
 
 const routes = {
@@ -12,7 +13,8 @@ const routes = {
   profile: ProfileIntake,
   evaluator: JobEvaluator,
   results: ResultsPage,
-  methodology: Methodology
+  methodology: Methodology,
+  data: DataNotice
 };
 
 const nav = [
@@ -20,7 +22,8 @@ const nav = [
   ['profile', 'Profile', UserRound],
   ['evaluator', 'Evaluator', BriefcaseBusiness],
   ['results', 'Results', ClipboardCheck],
-  ['methodology', 'Methodology', Info]
+  ['methodology', 'Methodology', Info],
+  ['data', 'Data Notice', ShieldCheck]
 ];
 
 function getRoute() {
@@ -72,6 +75,7 @@ export default function App() {
       <footer className="site-footer">
         <strong>James Lane</strong>
         <span>Created 2026</span>
+        <button type="button" onClick={() => go('data')}>Data Notice</button>
       </footer>
     </div>
   );

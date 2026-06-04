@@ -54,10 +54,12 @@ The callable function also enforces:
 - `maxInstances: 1`
 - 60 second timeout
 - 256 MiB memory
-- daily per-user quota
-- daily global quota
+- daily per-user quota, default 5 live Gemini calls per user
+- daily global quota, default 50 live Gemini calls across non-admin users
 - request size limits
 - model output token cap
+
+Admin users can be exempted from the live Gemini quota checks by either setting a Firebase Auth custom claim of `admin: true` or by configuring the server-only `ADMIN_EMAILS` Functions parameter as a comma-separated email list. Do not put admin emails in frontend code. If you use a local Functions env file for this parameter, keep it out of Git.
 
 ## Firebase Hosting and Functions
 

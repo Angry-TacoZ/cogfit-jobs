@@ -8,6 +8,10 @@ import { saveCloudFeedback } from '../lib/firebaseClient';
 
 const feedbackOptions = ['accurate', 'too optimistic', 'too pessimistic', 'missed key constraint', 'misunderstood my experience'];
 
+function listItems(items = []) {
+  return <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>;
+}
+
 export default function ResultsPage({ go }) {
   const [evaluations] = useState(loadEvaluations());
   const [selectedId, setSelectedId] = useState(evaluations[0]?.id);
@@ -100,27 +104,39 @@ export default function ResultsPage({ go }) {
         <ScoreCard label="Confidence Level" value={evaluation.scores.confidence} />
       </section>
       <section className="detail-grid">
-        <SectionPanel title="Systems-Thinking Match" defaultOpen>{evaluation.sections.systemsThinkingMatch}</SectionPanel>
-        <SectionPanel title="Skills & Evidence Match" defaultOpen>{evaluation.sections.skillsEvidenceMatch}</SectionPanel>
-        <SectionPanel title="Day-to-Day Reality" defaultOpen>{evaluation.sections.dayToDayReality}</SectionPanel>
-        <SectionPanel title="Potential Risks / Red Flags">
-          <ul>{evaluation.sections.potentialRisks.map((item) => <li key={item}>{item}</li>)}</ul>
+        <SectionPanel title={`Why Role Fit is ${evaluation.scores.roleFit}`} defaultOpen>
+          <p>{evaluation.sections.skillsEvidenceMatch}</p>
+          <p>{evaluation.sections.resumePositioningAngle}</p>
         </SectionPanel>
-        <SectionPanel title="Resume Positioning Angle">{evaluation.sections.resumePositioningAngle}</SectionPanel>
+        <SectionPanel title={`Why Callback Likelihood is ${evaluation.scores.callbackLikelihood}`} defaultOpen>
+          <p>{evaluation.sections.resumePositioningAngle}</p>
+          <h3>What could improve the screen</h3>
+          {listItems(evaluation.sections.evidenceToAdd)}
+        </SectionPanel>
+        <SectionPanel title={`Why Cognitive Fit is ${evaluation.scores.cognitiveFit}`} defaultOpen>
+          <p>{evaluation.sections.dayToDayReality}</p>
+        </SectionPanel>
+        <SectionPanel title={`Why Workstyle Risk is ${evaluation.scores.workstyleRisk}`} defaultOpen>
+          {listItems(evaluation.sections.potentialRisks)}
+        </SectionPanel>
+        <SectionPanel title={`Why Systems Match is ${evaluation.scores.systemsMatch}`}>
+          <p>{evaluation.sections.systemsThinkingMatch}</p>
+        </SectionPanel>
+        <SectionPanel title={`Why Skills Evidence is ${evaluation.scores.skillsEvidence}`}>
+          <p>{evaluation.sections.skillsEvidenceMatch}</p>
+          {listItems(evaluation.sections.evidenceToAdd)}
+        </SectionPanel>
+        <SectionPanel title={`Why Confidence is ${evaluation.scores.confidence}`}>
+          {listItems([...evaluation.assumptions, ...evaluation.missingInformation.map((item) => `Missing: ${item}`)])}
+        </SectionPanel>
         <SectionPanel title="Interview Talking Points">
-          <ul>{evaluation.sections.interviewTalkingPoints.map((item) => <li key={item}>{item}</li>)}</ul>
+          {listItems(evaluation.sections.interviewTalkingPoints)}
         </SectionPanel>
         <SectionPanel title="What to verify before applying">
-          <ul>{evaluation.sections.verifyBeforeApplying.map((item) => <li key={item}>{item}</li>)}</ul>
+          {listItems(evaluation.sections.verifyBeforeApplying)}
         </SectionPanel>
         <SectionPanel title="What would improve this score?">
-          <ul>{evaluation.sections.improveScore.map((item) => <li key={item}>{item}</li>)}</ul>
-        </SectionPanel>
-        <SectionPanel title="What evidence should I add?">
-          <ul>{evaluation.sections.evidenceToAdd.map((item) => <li key={item}>{item}</li>)}</ul>
-        </SectionPanel>
-        <SectionPanel title="Assumptions and missing information">
-          <ul>{[...evaluation.assumptions, ...evaluation.missingInformation.map((item) => `Missing: ${item}`)].map((item) => <li key={item}>{item}</li>)}</ul>
+          {listItems(evaluation.sections.improveScore)}
         </SectionPanel>
       </section>
       <section className="feedback">

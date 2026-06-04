@@ -133,6 +133,18 @@ main {
   font-size: 0.9rem;
 }
 
+.site-footer button {
+  border: 0;
+  background: transparent;
+  color: var(--accent-strong);
+  font-weight: 750;
+  padding: 6px 8px;
+}
+
+.site-footer button:hover {
+  text-decoration: underline;
+}
+
 .home-grid,
 .page {
   max-width: 1180px;
@@ -172,6 +184,11 @@ h3 {
 p {
   color: var(--muted);
   line-height: 1.62;
+}
+
+a {
+  color: var(--accent-strong);
+  font-weight: 750;
 }
 
 .subhead {
@@ -522,6 +539,12 @@ p {
   padding: 0 18px 18px;
   color: var(--muted);
   line-height: 1.6;
+}
+
+.section-panel h3 {
+  color: var(--ink);
+  font-size: 0.95rem;
+  margin: 14px 0 6px;
 }
 
 ul,

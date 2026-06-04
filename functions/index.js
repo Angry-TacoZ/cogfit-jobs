@@ -9,8 +9,9 @@ initializeApp();
 const db = getFirestore();
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const geminiModel = defineString('GEMINI_MODEL', { default: 'gemini-3.5-flash' });
+const adminEmails = defineString('ADMIN_EMAILS', { default: '' });
 const userDailyLimit = defineInt('USER_DAILY_EVALUATION_LIMIT', { default: 5 });
-const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 100 });
+const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 50 });
 
 const MAX_DESCRIPTION_CHARS = 12000;
 const MAX_PROFILE_CHARS = 16000;
@@ -212,7 +213,28 @@ function validateProfileRequest(data) {
   return { answers, draftProfile };
 }
 
-async function enforceDailyQuota(uid) {
+function isQuotaExempt(authToken = {}) {
+  if (authToken.admin === true) {
+    return true;
+  }
+
+  const email = String(authToken.email || '').trim().toLowerCase();
+  if (!email) {
+    return false;
+  }
+
+  return adminEmails.value()
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email);
+}
+
+async function enforceDailyQuota(uid, authToken) {
+  if (isQuotaExempt(authToken)) {
+    return;
+  }
+
   const day = getDayKey();
   const userRef = db.collection('usageCounters').doc(`user_${uid}_${day}`);
   const globalRef = db.collection('usageCounters').doc(`global_${day}`);
@@ -296,7 +318,7 @@ function parseGeminiJson(response) {
   return JSON.parse(response.text);
 }
 
-async function requireProtectedUser(request, actionLabel) {
+async function requireProtectedUser(request, actionLabel, { consumeQuota = false } = {}) {
   if (!request.auth || !request.auth.uid) {
     throw new HttpsError('unauthenticated', `Sign in is required before ${actionLabel}.`);
   }
@@ -306,7 +328,9 @@ async function requireProtectedUser(request, actionLabel) {
   if (!request.app) {
     throw new HttpsError('failed-precondition', `Firebase App Check is required before ${actionLabel}.`);
   }
-  await enforceDailyQuota(request.auth.uid);
+  if (consumeQuota) {
+    await enforceDailyQuota(request.auth.uid, request.auth.token);
+  }
 }
 
 async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
@@ -353,7 +377,7 @@ exports.generateProfile = onCall(
     secrets: [geminiApiKey]
   },
   async (request) => {
-    await requireProtectedUser(request, 'live profile generation');
+    await requireProtectedUser(request, 'live profile generation', { consumeQuota: true });
     const { answers, draftProfile } = validateProfileRequest(request.data);
     return generateStructuredGemini(
       buildProfilePrompt(answers, draftProfile),
@@ -469,7 +493,7 @@ exports.evaluateJob = onCall(
     secrets: [geminiApiKey]
   },
   async (request) => {
-    await requireProtectedUser(request, 'live evaluation');
+    await requireProtectedUser(request, 'live evaluation', { consumeQuota: true });
     const { profile, jobAd } = validateRequest(request.data);
     const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800);
 

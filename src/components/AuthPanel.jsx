@@ -87,7 +87,7 @@ export default function AuthPanel({ compact = false }) {
         <p>Your profile, job evaluations, and feedback are kept under your account so you can reuse them across job ads.</p>
         {mode === 'create' && (
           <p className="privacy-note">
-            By creating an account, you agree that CogFit Jobs will secure your profile, job evaluations, and feedback under your account and use that data to improve the product.
+            By creating an account, you agree that CogFit Jobs will secure your profile, job evaluations, and feedback under your account and use that data to improve the product. Read the <a href="#/data">Data Notice</a>.
           </p>
         )}
       </div>
