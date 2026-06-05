@@ -139,7 +139,7 @@ export async function callEvaluateJob(profile, jobAd) {
     await startAppCheck();
     await requireCurrentUser('running live analysis');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
-    const evaluateJob = httpsCallable(functions, 'evaluateJob', { limitedUseAppCheckTokens: true });
+    const evaluateJob = httpsCallable(functions, 'evaluateJob');
     const response = await evaluateJob({ profile, jobAd });
     return response.data;
   });
@@ -150,7 +150,7 @@ export async function callGenerateProfile(answers, draftProfile) {
     await startAppCheck();
     await requireCurrentUser('generating the final work-fit profile');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
-    const generateProfile = httpsCallable(functions, 'generateProfile', { limitedUseAppCheckTokens: true });
+    const generateProfile = httpsCallable(functions, 'generateProfile');
     const response = await generateProfile({ answers, draftProfile });
     return response.data;
   });
@@ -161,7 +161,7 @@ export async function saveCloudProfile(profile, answers = {}) {
     await startAppCheck();
     await requireCurrentUser('saving your profile');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
-    const saveProfile = httpsCallable(functions, 'saveProfile', { limitedUseAppCheckTokens: true });
+    const saveProfile = httpsCallable(functions, 'saveProfile');
     const response = await saveProfile({ profile, answers });
     return response.data;
   });
@@ -172,7 +172,7 @@ export async function saveCloudEvaluation(profile, evaluation, jobAd) {
     await startAppCheck();
     await requireCurrentUser('saving the job evaluation');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
-    const saveEvaluation = httpsCallable(functions, 'saveEvaluation', { limitedUseAppCheckTokens: true });
+    const saveEvaluation = httpsCallable(functions, 'saveEvaluation');
     const response = await saveEvaluation({ profile, evaluation, jobAd });
     return response.data;
   });
@@ -183,7 +183,7 @@ export async function saveCloudFeedback(profileId, evaluationId, value) {
     await startAppCheck();
     await requireCurrentUser('saving feedback');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
-    const saveFeedback = httpsCallable(functions, 'saveFeedback', { limitedUseAppCheckTokens: true });
+    const saveFeedback = httpsCallable(functions, 'saveFeedback');
     await saveFeedback({ profileId, evaluationId, value });
   });
 }

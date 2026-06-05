@@ -451,8 +451,8 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
 exports.generateProfile = onCall(
   {
     region: 'us-central1',
+    invoker: 'public',
     enforceAppCheck: true,
-    consumeAppCheckToken: true,
     maxInstances: 1,
     timeoutSeconds: 60,
     memory: '256MiB',
@@ -472,8 +472,8 @@ exports.generateProfile = onCall(
 exports.saveProfile = onCall(
   {
     region: 'us-central1',
+    invoker: 'public',
     enforceAppCheck: true,
-    consumeAppCheckToken: true,
     maxInstances: 1,
     timeoutSeconds: 30,
     memory: '256MiB'
@@ -506,8 +506,8 @@ exports.saveProfile = onCall(
 exports.saveEvaluation = onCall(
   {
     region: 'us-central1',
+    invoker: 'public',
     enforceAppCheck: true,
-    consumeAppCheckToken: true,
     maxInstances: 1,
     timeoutSeconds: 30,
     memory: '256MiB'
@@ -543,8 +543,8 @@ exports.saveEvaluation = onCall(
 exports.saveFeedback = onCall(
   {
     region: 'us-central1',
+    invoker: 'public',
     enforceAppCheck: true,
-    consumeAppCheckToken: true,
     maxInstances: 1,
     timeoutSeconds: 30,
     memory: '256MiB'
@@ -567,8 +567,8 @@ exports.saveFeedback = onCall(
 exports.evaluateJob = onCall(
   {
     region: 'us-central1',
+    invoker: 'public',
     enforceAppCheck: true,
-    consumeAppCheckToken: true,
     maxInstances: 1,
     timeoutSeconds: 60,
     memory: '256MiB',
