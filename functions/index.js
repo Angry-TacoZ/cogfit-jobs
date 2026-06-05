@@ -12,7 +12,6 @@ const geminiModel = defineString('GEMINI_MODEL', { default: 'gemini-3.5-flash' }
 const adminEmails = defineString('ADMIN_EMAILS', { default: '' });
 const userDailyLimit = defineInt('USER_DAILY_EVALUATION_LIMIT', { default: 5 });
 const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 50 });
-const FALLBACK_GEMINI_MODEL = 'gemini-2.5-flash';
 
 const MAX_DESCRIPTION_CHARS = 12000;
 const MAX_PROFILE_CHARS = 16000;
@@ -431,12 +430,7 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
   const client = new GoogleGenAI({ apiKey });
   const attempts = [
     { model, schemaMode: 'jsonSchema' },
-    { model, schemaMode: 'schema' },
-    { model, schemaMode: 'plain' },
-    ...(model === FALLBACK_GEMINI_MODEL ? [] : [
-      { model: FALLBACK_GEMINI_MODEL, schemaMode: 'jsonSchema' },
-      { model: FALLBACK_GEMINI_MODEL, schemaMode: 'plain' }
-    ])
+    { model, schemaMode: 'plain' }
   ];
 
   const failures = [];
