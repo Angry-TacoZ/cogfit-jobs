@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BriefcaseBusiness, ClipboardCheck, Home, Info, ShieldCheck, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, ClipboardCheck, Home, Info, UserRound } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import ProfileIntake from './pages/ProfileIntake';
 import JobEvaluator from './pages/JobEvaluator';
@@ -23,8 +23,7 @@ const nav = [
   ['profile', 'Profile', UserRound],
   ['evaluator', 'Evaluator', BriefcaseBusiness],
   ['results', 'Results', ClipboardCheck],
-  ['methodology', 'Methodology', Info],
-  ['data', 'Data Notice', ShieldCheck]
+  ['methodology', 'Methodology', Info]
 ];
 
 function getRoute() {
