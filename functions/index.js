@@ -510,7 +510,7 @@ exports.generateProfile = onCall(
     return generateStructuredGemini(
       buildProfilePrompt(answers, draftProfile),
       workFitProfileSchema,
-      1400
+      3200
     );
   }
 );
