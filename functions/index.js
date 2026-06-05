@@ -389,6 +389,16 @@ function apiErrorSummary(error) {
   };
 }
 
+function isTransientGeminiError(error) {
+  const status = Number(error?.status);
+  const message = String(error?.message || '').toLowerCase();
+  return status === 429 || status >= 500 || message.includes('unavailable') || message.includes('high demand');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function classifyGeminiFailures(failures) {
   const statusValues = failures.map((failure) => Number(failure.error?.status)).filter(Boolean);
   const messages = failures.map((failure) => String(failure.error?.message || '').toLowerCase()).join('\n');
@@ -481,12 +491,19 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
 
   const failures = [];
   for (const attempt of attempts) {
-    try {
-      const response = await callGeminiJson(client, attempt.model, prompt, schema, maxOutputTokens, attempt.schemaMode);
-      return parseGeminiJson(response);
-    } catch (error) {
-      failures.push({ ...attempt, error: apiErrorSummary(error) });
-      console.error('Gemini JSON generation attempt failed', failures[failures.length - 1]);
+    for (let retry = 0; retry < 3; retry += 1) {
+      try {
+        const response = await callGeminiJson(client, attempt.model, prompt, schema, maxOutputTokens, attempt.schemaMode);
+        return parseGeminiJson(response);
+      } catch (error) {
+        const failure = { ...attempt, retry, error: apiErrorSummary(error) };
+        failures.push(failure);
+        console.error('Gemini JSON generation attempt failed', failure);
+        if (!isTransientGeminiError(error) || retry === 2) {
+          break;
+        }
+        await sleep(1200 * (retry + 1));
+      }
     }
   }
 
