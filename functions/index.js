@@ -310,14 +310,59 @@ function buildProfilePrompt(answers, draftProfile) {
   ].join('\n');
 }
 
+function extractJsonObject(text) {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const candidate = fenced ? fenced[1].trim() : trimmed;
+  if (candidate.startsWith('{') && candidate.endsWith('}')) {
+    return candidate;
+  }
+
+  const start = candidate.indexOf('{');
+  if (start === -1) {
+    throw new Error('Gemini response did not contain a JSON object.');
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < candidate.length; index += 1) {
+    const char = candidate[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      continue;
+    }
+    if (char === '{') {
+      depth += 1;
+    }
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return candidate.slice(start, index + 1);
+      }
+    }
+  }
+
+  throw new Error('Gemini response contained incomplete JSON.');
+}
+
 function parseGeminiJson(response) {
   if (!response.text) {
     throw new Error('Gemini response did not include output text.');
   }
 
-  const text = response.text.trim();
-  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return JSON.parse(fenced ? fenced[1] : text);
+  return JSON.parse(extractJsonObject(response.text));
 }
 
 async function requireProtectedUser(request, actionLabel, { consumeQuota = false } = {}) {
@@ -375,7 +420,7 @@ function classifyGeminiFailures(failures) {
   if (failures.some((failure) => failure.error?.name === 'SyntaxError' || String(failure.error?.message || '').includes('JSON'))) {
     return {
       code: 'failed-precondition',
-      message: 'Gemini returned output that could not be parsed as a scored report. Try again with slightly shorter answers.'
+      message: 'Gemini returned output that could not be parsed as the expected structured profile. Try again with slightly shorter answers.'
     };
   }
 
@@ -402,11 +447,11 @@ async function callGeminiJson(client, model, prompt, schema, maxOutputTokens, sc
     temperature: 0.2
   };
 
-  if (schemaMode === 'jsonSchema') {
-    config.responseJsonSchema = schema;
-  }
   if (schemaMode === 'schema') {
     config.responseSchema = schema;
+  }
+  if (schemaMode === 'jsonSchema') {
+    config.responseJsonSchema = schema;
   }
 
   const contents = schemaMode === 'plain'
@@ -429,6 +474,7 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
   const model = geminiModel.value();
   const client = new GoogleGenAI({ apiKey });
   const attempts = [
+    { model, schemaMode: 'schema' },
     { model, schemaMode: 'jsonSchema' },
     { model, schemaMode: 'plain' }
   ];
