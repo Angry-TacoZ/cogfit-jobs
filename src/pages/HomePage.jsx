@@ -1,5 +1,6 @@
-import { ArrowRight, FileText, SearchCheck } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Button from '../components/Button';
+import CogMotionMark from '../components/CogMotionMark';
 import { sampleJobs } from '../data/sampleJobs';
 import { sampleProfile } from '../data/sampleProfiles';
 import { saveGeneratedProfile } from '../lib/storage';
@@ -25,25 +26,8 @@ export default function HomePage({ go }) {
             <Button variant="secondary" onClick={runSample}>Try sample job ad</Button>
           </div>
         </div>
-        <div className="hero-panel" aria-label="Prototype workflow preview">
-          <div className="mini-row">
-            <FileText />
-            <span>Profile evidence</span>
-            <strong>88%</strong>
-          </div>
-          <div className="mini-row">
-            <SearchCheck />
-            <span>AI Enablement role</span>
-            <strong>Apply</strong>
-          </div>
-          <div className="bars">
-            <span style={{ width: '86%' }} />
-            <span style={{ width: '78%' }} />
-            <span style={{ width: '31%' }} />
-          </div>
-          <p>
-            Not a keyword scanner. The evaluator separates ability, callback probability, cognitive load, and workstyle risk.
-          </p>
+        <div className="hero-motion-mark">
+          <CogMotionMark className="home-motion-mark" />
         </div>
       </section>
       <section className="band">
