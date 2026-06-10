@@ -281,6 +281,10 @@ function buildPrompt(profile, jobAd) {
     'Do not act like a generic career coach. Do not flatter. Do not fake certainty.',
     'Base the report only on the supplied work-fit profile and job ad.',
     'State uncertainty and missing evidence explicitly.',
+    'Do not say a skill, tool, or evidence item is absent, missing, or not highlighted if it appears anywhere in the work-fit profile JSON.',
+    'If a tool appears in the profile but the role needs deeper, more specific, or domain-specific proof, say exactly that instead.',
+    'Treat Power BI, BI dashboards, reporting dashboards, and SQL dashboards as dashboarding or BI evidence when judging skills match.',
+    'Separate tool presence from evidence depth. Example: Power BI may be present, while executive-ready financial reporting proof may still be thin.',
     'Score callback likelihood separately from actual ability and sustainability.',
     'Culture / Workstyle Risk is risk severity, so higher is worse.',
     'Avoid em dashes in all prose.',
@@ -297,11 +301,40 @@ function buildPrompt(profile, jobAd) {
   ].join('\n');
 }
 
+function mergeUniqueLimited(primary = [], secondary = [], limit = 20) {
+  const seen = new Set();
+  const merged = [];
+  for (const value of [...primary, ...secondary]) {
+    const text = String(value || '').trim();
+    const key = text.toLowerCase();
+    if (!text || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    merged.push(text);
+    if (merged.length >= limit) {
+      break;
+    }
+  }
+  return merged;
+}
+
+function preserveDraftEvidence(profile, draftProfile) {
+  return {
+    ...profile,
+    strongest_evidence: mergeUniqueLimited(profile.strongest_evidence, draftProfile.strongest_evidence, 10),
+    tools_and_skills: mergeUniqueLimited(profile.tools_and_skills, draftProfile.tools_and_skills, 20),
+    misunderstood_resume_signals: mergeUniqueLimited(profile.misunderstood_resume_signals, draftProfile.misunderstood_resume_signals, 8)
+  };
+}
+
 function buildProfilePrompt(answers, draftProfile) {
   return [
     'You are CogFit Jobs, creating a final Work-Fit Profile for a nontraditional candidate.',
     'Use the supplied questionnaire answers as the primary evidence.',
     'Use the JavaScript first-pass profile only as a rough draft, not as ground truth.',
+    'Preserve explicitly named tools, platforms, project artifacts, and dashboard evidence from the answers unless they are clearly irrelevant duplicates.',
+    'Do not drop named evidence such as SQL, Power BI, BI dashboards, APIs, programming languages, deployed apps, or portfolio artifacts.',
     'Do not diagnose medical conditions. Do not add claims the user did not support.',
     'If evidence is missing, lower confidence and name the missing information.',
     'Infer systems thinking from answer structure, not self-labels.',
@@ -530,11 +563,12 @@ exports.generateProfile = onCall(
   async (request) => {
     await requireProtectedUser(request, 'live profile generation', { consumeQuota: true });
     const { answers, draftProfile } = validateProfileRequest(request.data);
-    return generateStructuredGemini(
+    const generatedProfile = await generateStructuredGemini(
       buildProfilePrompt(answers, draftProfile),
       workFitProfileSchema,
       3200
     );
+    return preserveDraftEvidence(generatedProfile, draftProfile);
   }
 );
 
