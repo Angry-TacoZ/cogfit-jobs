@@ -568,6 +568,82 @@ ol {
   margin-top: 28px;
 }
 
+.admin-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: clamp(20px, 4vw, 34px);
+  margin-bottom: 18px;
+}
+
+.pie-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.pie-chart {
+  width: min(220px, 100%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 22px white;
+}
+
+.legend-list {
+  display: grid;
+  gap: 12px;
+}
+
+.legend-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.legend-row span {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.legend-row strong {
+  color: var(--ink);
+}
+
+.legend-row em {
+  font-style: normal;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 10px;
+  text-align: left;
+}
+
+.admin-table th {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.admin-table td {
+  color: var(--muted);
+}
+
 .empty-state {
   text-align: center;
   padding-top: 8vh;
@@ -592,7 +668,8 @@ ol {
   .feature-grid,
   .auth-panel,
   .two-col,
-  .detail-grid {
+  .detail-grid,
+  .pie-layout {
     grid-template-columns: 1fr;
   }
 

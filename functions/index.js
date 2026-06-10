@@ -230,6 +230,12 @@ function isQuotaExempt(authToken = {}) {
     .includes(email);
 }
 
+function requireAdmin(request) {
+  if (!isQuotaExempt(request.auth?.token || {})) {
+    throw new HttpsError('permission-denied', 'Admin access is required.');
+  }
+}
+
 async function enforceDailyQuota(uid, authToken) {
   if (isQuotaExempt(authToken)) {
     return;
@@ -624,6 +630,46 @@ exports.saveFeedback = onCall(
       createdAt: FieldValue.serverTimestamp()
     });
     return { ok: true };
+  }
+);
+
+exports.getAdminFeedbackSummary = onCall(
+  {
+    region: 'us-central1',
+    invoker: 'public',
+    enforceAppCheck: true,
+    maxInstances: 1,
+    timeoutSeconds: 30,
+    memory: '256MiB'
+  },
+  async (request) => {
+    await requireProtectedUser(request, 'admin dashboard access');
+    requireAdmin(request);
+
+    const snapshot = await db.collectionGroup('feedback').limit(500).get();
+    const counts = {};
+    const recent = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data() || {};
+      const value = String(data.value || 'unknown');
+      counts[value] = (counts[value] || 0) + 1;
+      recent.push({
+        id: doc.id,
+        value,
+        evaluationId: String(data.evaluationId || ''),
+        path: doc.ref.path,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null
+      });
+    });
+
+    recent.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+    return {
+      total: snapshot.size,
+      counts,
+      recent: recent.slice(0, 25)
+    };
   }
 );
 

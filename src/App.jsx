@@ -6,8 +6,12 @@ import JobEvaluator from './pages/JobEvaluator';
 import ResultsPage from './pages/ResultsPage';
 import Methodology from './pages/Methodology';
 import DataNotice from './pages/DataNotice';
+import AdminDashboard from './pages/AdminDashboard';
 import { loadGeneratedProfile } from './lib/storage';
+import { watchAuth } from './lib/firebaseClient';
 import cogfitMark from './assets/cogfit-jobs-mark.png';
+
+const adminEmails = ['tiburo13@gmail.com'];
 
 const routes = {
   home: HomePage,
@@ -15,7 +19,8 @@ const routes = {
   evaluator: JobEvaluator,
   results: ResultsPage,
   methodology: Methodology,
-  data: DataNotice
+  data: DataNotice,
+  admin: AdminDashboard
 };
 
 const nav = [
@@ -33,6 +38,7 @@ function getRoute() {
 export default function App() {
   const [route, setRoute] = useState(getRoute());
   const [profile, setProfile] = useState(loadGeneratedProfile());
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const onHash = () => {
@@ -43,7 +49,18 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
+  useEffect(() => {
+    let unsubscribe = () => {};
+    watchAuth((nextUser) => {
+      setUser(nextUser);
+    }).then((nextUnsubscribe) => {
+      unsubscribe = nextUnsubscribe;
+    });
+    return () => unsubscribe();
+  }, []);
+
   const Page = routes[route] || HomePage;
+  const isAdmin = adminEmails.includes(String(user?.email || '').toLowerCase());
   const go = (next) => {
     window.location.hash = `/${next}`;
     setRoute(next);
@@ -78,6 +95,7 @@ export default function App() {
         <strong>James Lane</strong>
         <span>Created 2026</span>
         <button type="button" onClick={() => go('data')}>Data Notice</button>
+        {isAdmin && <button type="button" onClick={() => go('admin')}>Admin</button>}
       </footer>
     </div>
   );

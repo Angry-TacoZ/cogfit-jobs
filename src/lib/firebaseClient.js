@@ -187,3 +187,14 @@ export async function saveCloudFeedback(profileId, evaluationId, value) {
     await saveFeedback({ profileId, evaluationId, value });
   });
 }
+
+export async function loadAdminFeedbackSummary() {
+  return runProtectedCall(async () => {
+    await startAppCheck();
+    await requireCurrentUser('opening the admin dashboard');
+    const functions = getFunctions(await getFirebaseApp(), 'us-central1');
+    const getAdminFeedbackSummary = httpsCallable(functions, 'getAdminFeedbackSummary');
+    const response = await getAdminFeedbackSummary({});
+    return response.data;
+  });
+}
