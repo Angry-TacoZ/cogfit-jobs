@@ -13,7 +13,7 @@ function buildPie(counts) {
   }
 
   let cursor = 0;
-  const stops = entries.map(([label, count], index) => {
+  const stops = entries.map(([, count], index) => {
     const start = cursor;
     const size = (count / total) * 100;
     cursor += size;
