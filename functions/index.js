@@ -3,6 +3,16 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineInt, defineSecret, defineString } = require('firebase-functions/params');
 const { GoogleGenAI } = require('@google/genai');
+const {
+  PayloadValidationError,
+  reportSchema,
+  workFitProfileSchema,
+  normalizeEvaluation,
+  normalizeFeedbackPayload,
+  normalizeJobAd,
+  normalizeProfileAnswers,
+  normalizeWorkFitProfile
+} = require('./payloadValidation');
 
 initializeApp();
 
@@ -13,204 +23,39 @@ const adminEmails = defineString('ADMIN_EMAILS', { default: '' });
 const userDailyLimit = defineInt('USER_DAILY_EVALUATION_LIMIT', { default: 5 });
 const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 50 });
 
-const MAX_DESCRIPTION_CHARS = 12000;
-const MAX_PROFILE_CHARS = 16000;
-const MAX_NOTES_CHARS = 1000;
-const MAX_PROFILE_ANSWERS_CHARS = 18000;
-
-const systemsThinkingSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: [
-    'root_cause_depth',
-    'system_mapping',
-    'pattern_recognition',
-    'failure_mode_awareness',
-    'improvement_drive',
-    'abstraction_ability'
-  ],
-  properties: {
-    root_cause_depth: { type: 'integer', minimum: 0, maximum: 5 },
-    system_mapping: { type: 'integer', minimum: 0, maximum: 5 },
-    pattern_recognition: { type: 'integer', minimum: 0, maximum: 5 },
-    failure_mode_awareness: { type: 'integer', minimum: 0, maximum: 5 },
-    improvement_drive: { type: 'integer', minimum: 0, maximum: 5 },
-    abstraction_ability: { type: 'integer', minimum: 0, maximum: 5 }
-  }
-};
-
-const workFitProfileSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: [
-    'target_role_families',
-    'strongest_evidence',
-    'tools_and_skills',
-    'energizers',
-    'drainers',
-    'preferred_problem_structure',
-    'communication_preferences',
-    'interaction_limits',
-    'autonomy_needs',
-    'negative_fit_patterns',
-    'hidden_costs',
-    'misunderstood_resume_signals',
-    'systems_thinking_score',
-    'confidence_score',
-    'missing_information'
-  ],
-  properties: {
-    target_role_families: { type: 'array', items: { type: 'string' }, maxItems: 8 },
-    strongest_evidence: { type: 'array', items: { type: 'string' }, maxItems: 10 },
-    tools_and_skills: { type: 'array', items: { type: 'string' }, maxItems: 20 },
-    energizers: { type: 'array', items: { type: 'string' }, maxItems: 10 },
-    drainers: { type: 'array', items: { type: 'string' }, maxItems: 10 },
-    preferred_problem_structure: { type: 'string' },
-    communication_preferences: { type: 'array', items: { type: 'string' }, maxItems: 8 },
-    interaction_limits: { type: 'string' },
-    autonomy_needs: { type: 'string' },
-    negative_fit_patterns: { type: 'array', items: { type: 'string' }, maxItems: 10 },
-    hidden_costs: { type: 'array', items: { type: 'string' }, maxItems: 8 },
-    misunderstood_resume_signals: { type: 'array', items: { type: 'string' }, maxItems: 8 },
-    systems_thinking_score: systemsThinkingSchema,
-    confidence_score: { type: 'integer', minimum: 0, maximum: 100 },
-    missing_information: { type: 'array', items: { type: 'string' }, maxItems: 10 }
-  }
-};
-
-const reportSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: [
-    'overallRecommendation',
-    'decision',
-    'scores',
-    'sections',
-    'missingInformation',
-    'assumptions'
-  ],
-  properties: {
-    overallRecommendation: { type: 'string' },
-    decision: { type: 'string', enum: ['Apply', 'Maybe', 'Skip'] },
-    scores: {
-      type: 'object',
-      additionalProperties: false,
-      required: [
-        'roleFit',
-        'callbackLikelihood',
-        'cognitiveFit',
-        'workstyleRisk',
-        'systemsMatch',
-        'skillsEvidence',
-        'confidence'
-      ],
-      properties: {
-        roleFit: { type: 'integer', minimum: 0, maximum: 100 },
-        callbackLikelihood: { type: 'integer', minimum: 0, maximum: 100 },
-        cognitiveFit: { type: 'integer', minimum: 0, maximum: 100 },
-        workstyleRisk: { type: 'integer', minimum: 0, maximum: 100 },
-        systemsMatch: { type: 'integer', minimum: 0, maximum: 100 },
-        skillsEvidence: { type: 'integer', minimum: 0, maximum: 100 },
-        confidence: { type: 'integer', minimum: 0, maximum: 100 }
-      }
-    },
-    sections: {
-      type: 'object',
-      additionalProperties: false,
-      required: [
-        'systemsThinkingMatch',
-        'skillsEvidenceMatch',
-        'dayToDayReality',
-        'potentialRisks',
-        'resumePositioningAngle',
-        'interviewTalkingPoints',
-        'verifyBeforeApplying',
-        'improveScore',
-        'evidenceToAdd'
-      ],
-      properties: {
-        systemsThinkingMatch: { type: 'string' },
-        skillsEvidenceMatch: { type: 'string' },
-        dayToDayReality: { type: 'string' },
-        potentialRisks: { type: 'array', items: { type: 'string' }, maxItems: 6 },
-        resumePositioningAngle: { type: 'string' },
-        interviewTalkingPoints: { type: 'array', items: { type: 'string' }, maxItems: 6 },
-        verifyBeforeApplying: { type: 'array', items: { type: 'string' }, maxItems: 6 },
-        improveScore: { type: 'array', items: { type: 'string' }, maxItems: 6 },
-        evidenceToAdd: { type: 'array', items: { type: 'string' }, maxItems: 6 }
-      }
-    },
-    missingInformation: { type: 'array', items: { type: 'string' }, maxItems: 8 },
-    assumptions: { type: 'array', items: { type: 'string' }, maxItems: 8 }
-  }
-};
-
 function getDayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function safeText(value, maxLength, field) {
-  const text = String(value || '').trim();
-  if (text.length > maxLength) {
-    throw new HttpsError('invalid-argument', `${field} is too long. Limit it to ${maxLength} characters.`);
+function withPayloadValidation(callback) {
+  try {
+    return callback();
+  } catch (error) {
+    if (error instanceof PayloadValidationError) {
+      throw new HttpsError('invalid-argument', error.message);
+    }
+    throw error;
   }
-  return text;
 }
 
 function validateRequest(data) {
-  const profile = data && data.profile;
-  const jobAd = data && data.jobAd;
-  if (!profile || typeof profile !== 'object') {
-    throw new HttpsError('invalid-argument', 'A generated work-fit profile is required.');
-  }
-  if (!jobAd || typeof jobAd !== 'object') {
-    throw new HttpsError('invalid-argument', 'A job ad object is required.');
-  }
-
-  const profileJson = JSON.stringify(profile);
-  if (profileJson.length > MAX_PROFILE_CHARS) {
-    throw new HttpsError('invalid-argument', `Profile payload is too large. Limit it to ${MAX_PROFILE_CHARS} characters.`);
-  }
-
-  const title = safeText(jobAd.title, 160, 'Job title');
-  const company = safeText(jobAd.company, 160, 'Company');
-  const description = safeText(jobAd.description, MAX_DESCRIPTION_CHARS, 'Job description');
-  const notes = safeText(jobAd.notes, MAX_NOTES_CHARS, 'Notes');
-
-  if (!title || !description || description.length < 120) {
-    throw new HttpsError('invalid-argument', 'Add a job title and a job description of at least 120 characters.');
-  }
-
-  return { profile, jobAd: { title, company, description, notes } };
+  return withPayloadValidation(() => ({
+    profile: normalizeWorkFitProfile(data?.profile),
+    jobAd: normalizeJobAd(data?.jobAd, { requireMinimumDescription: true })
+  }));
 }
 
 function validateProfileRequest(data) {
-  const answers = data && data.answers;
-  const draftProfile = data && data.draftProfile;
-
-  if (!answers || typeof answers !== 'object') {
-    throw new HttpsError('invalid-argument', 'Profile answers are required.');
-  }
-  if (!draftProfile || typeof draftProfile !== 'object') {
-    throw new HttpsError('invalid-argument', 'A JavaScript first-pass profile is required.');
-  }
-
-  const answersJson = JSON.stringify(answers);
-  const draftJson = JSON.stringify(draftProfile);
-
-  if (answersJson.length > MAX_PROFILE_ANSWERS_CHARS) {
-    throw new HttpsError('invalid-argument', `Profile answers are too large. Limit them to ${MAX_PROFILE_ANSWERS_CHARS} characters.`);
-  }
-  if (draftJson.length > MAX_PROFILE_CHARS) {
-    throw new HttpsError('invalid-argument', `Draft profile is too large. Limit it to ${MAX_PROFILE_CHARS} characters.`);
-  }
-
-  const answeredCount = Object.values(answers).filter((value) => String(value || '').trim().length > 0).length;
+  const payload = withPayloadValidation(() => ({
+    answers: normalizeProfileAnswers(data?.answers),
+    draftProfile: normalizeWorkFitProfile(data?.draftProfile)
+  }));
+  const answeredCount = Object.values(payload.answers).filter((value) => String(value || '').trim().length > 0).length;
   if (answeredCount < 12) {
     throw new HttpsError('invalid-argument', 'Answer more profile questions before generating the final work-fit profile.');
   }
 
-  return { answers, draftProfile };
+  return payload;
 }
 
 function isQuotaExempt(authToken = {}) {
@@ -568,7 +413,7 @@ exports.generateProfile = onCall(
       workFitProfileSchema,
       3200
     );
-    return preserveDraftEvidence(generatedProfile, draftProfile);
+    return withPayloadValidation(() => normalizeWorkFitProfile(preserveDraftEvidence(generatedProfile, draftProfile)));
   }
 );
 
@@ -583,16 +428,10 @@ exports.saveProfile = onCall(
   },
   async (request) => {
     await requireProtectedUser(request, 'profile storage');
-    const { profile, answers } = request.data || {};
-    if (!profile || typeof profile !== 'object') {
-      throw new HttpsError('invalid-argument', 'A profile object is required.');
-    }
-    if (JSON.stringify(profile).length > MAX_PROFILE_CHARS) {
-      throw new HttpsError('invalid-argument', `Profile payload is too large. Limit it to ${MAX_PROFILE_CHARS} characters.`);
-    }
-    if (answers && JSON.stringify(answers).length > MAX_PROFILE_ANSWERS_CHARS) {
-      throw new HttpsError('invalid-argument', `Profile answers are too large. Limit them to ${MAX_PROFILE_ANSWERS_CHARS} characters.`);
-    }
+    const { profile, answers } = withPayloadValidation(() => ({
+      profile: normalizeWorkFitProfile(request.data?.profile),
+      answers: normalizeProfileAnswers(request.data?.answers || {})
+    }));
 
     const profileId = profile.profile_id || crypto.randomUUID();
     const profileWithId = { ...profile, profile_id: profileId };
@@ -617,13 +456,11 @@ exports.saveEvaluation = onCall(
   },
   async (request) => {
     await requireProtectedUser(request, 'job evaluation storage');
-    const { profile, evaluation, jobAd } = request.data || {};
-    if (!profile || typeof profile !== 'object' || !evaluation || typeof evaluation !== 'object') {
-      throw new HttpsError('invalid-argument', 'Profile and evaluation objects are required.');
-    }
-    if (JSON.stringify(profile).length > MAX_PROFILE_CHARS || JSON.stringify(evaluation).length > MAX_PROFILE_CHARS) {
-      throw new HttpsError('invalid-argument', 'Profile or evaluation payload is too large.');
-    }
+    const { profile, evaluation, jobAd } = withPayloadValidation(() => ({
+      profile: normalizeWorkFitProfile(request.data?.profile),
+      evaluation: normalizeEvaluation(request.data?.evaluation),
+      jobAd: normalizeJobAd(request.data?.jobAd, { requireMinimumDescription: true })
+    }));
 
     const profileId = profile.profile_id || 'default-profile';
     const evaluationId = evaluation.id || crypto.randomUUID();
@@ -654,10 +491,7 @@ exports.saveFeedback = onCall(
   },
   async (request) => {
     await requireProtectedUser(request, 'feedback storage');
-    const { profileId, evaluationId, value } = request.data || {};
-    if (!profileId || !evaluationId || !value) {
-      throw new HttpsError('invalid-argument', 'Profile ID, evaluation ID, and feedback value are required.');
-    }
+    const { profileId, evaluationId, value } = withPayloadValidation(() => normalizeFeedbackPayload(request.data));
     await db.collection(`users/${request.auth.uid}/profiles/${profileId}/feedback`).add({
       evaluationId: String(evaluationId),
       value: String(value),
@@ -722,7 +556,7 @@ exports.evaluateJob = onCall(
     const { profile, jobAd } = validateRequest(request.data);
     const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800);
 
-    return {
+    return withPayloadValidation(() => normalizeEvaluation({
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       jobTitle: jobAd.title,
@@ -732,6 +566,6 @@ exports.evaluateJob = onCall(
         ...(report.assumptions || []),
         'This live report is model-generated from the supplied profile and job ad, not a hiring prediction.'
       ]
-    };
+    }));
   }
 );

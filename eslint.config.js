@@ -36,7 +36,7 @@ export default [
     }
   },
   {
-    files: ['functions/index.js'],
+    files: ['functions/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'commonjs',

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "lint": "node --check index.js"
+    "lint": "node --check index.js && node --check payloadValidation.js"
   },
   "keywords": [],
   "author": "",
