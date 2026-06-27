@@ -286,19 +286,6 @@ function normalizeWorkFitProfile(profile) {
   const source = requirePlainObject(profile, 'Profile');
   assertPayloadSize(source, MAX_PROFILE_CHARS, 'Profile payload');
 
-  const allowed = new Set([
-    ...Object.keys(profileArrayFields),
-    ...profileStringFields,
-    'systems_thinking_score',
-    'confidence_score',
-    'profile_id',
-    'profile_generation_mode',
-    'live_profile_error',
-    'draft_profile_confidence_score',
-    'inferred_flags'
-  ]);
-  rejectUnknownKeys(source, allowed, 'Profile');
-
   const normalized = {};
   for (const [field, maxItems] of Object.entries(profileArrayFields)) {
     normalized[field] = safeStringArray(source[field], maxItems, field);
@@ -392,21 +379,6 @@ function normalizeScores(scores) {
 function normalizeEvaluation(evaluation) {
   const source = requirePlainObject(evaluation, 'Evaluation');
   assertPayloadSize(source, MAX_PROFILE_CHARS, 'Evaluation payload');
-
-  const allowed = new Set([
-    'id',
-    'profile_id',
-    'createdAt',
-    'jobTitle',
-    'company',
-    'overallRecommendation',
-    'decision',
-    'scores',
-    'sections',
-    'missingInformation',
-    'assumptions'
-  ]);
-  rejectUnknownKeys(source, allowed, 'Evaluation');
 
   const decision = safeText(source.decision, 20, 'Decision', { required: true });
   if (!['Apply', 'Maybe', 'Skip'].includes(decision)) {
