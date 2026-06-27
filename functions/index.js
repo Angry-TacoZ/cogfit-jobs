@@ -613,6 +613,53 @@ exports.saveEvaluation = onCall(
   }
 );
 
+exports.getUserEvaluations = onCall(
+  {
+    region: 'us-central1',
+    invoker: 'public',
+    enforceAppCheck: true,
+    maxInstances: 1,
+    timeoutSeconds: 30,
+    memory: '256MiB'
+  },
+  async (request) => {
+    await requireProtectedUser(request, 'loading saved evaluations');
+
+    const profileSnapshot = await db.collection(`users/${request.auth.uid}/profiles`).limit(10).get();
+    const evaluations = [];
+
+    for (const profileDoc of profileSnapshot.docs) {
+      const evaluationSnapshot = await profileDoc.ref
+        .collection('evaluations')
+        .orderBy('createdAt', 'desc')
+        .limit(12)
+        .get();
+
+      evaluationSnapshot.forEach((evaluationDoc) => {
+        const stored = evaluationDoc.data()?.evaluation;
+        if (!stored) return;
+        try {
+          evaluations.push(normalizeEvaluation({
+            ...stored,
+            id: stored.id || evaluationDoc.id,
+            profile_id: stored.profile_id || profileDoc.id
+          }));
+        } catch (error) {
+          console.warn('Skipped invalid saved evaluation', {
+            uid: request.auth.uid,
+            profileId: profileDoc.id,
+            evaluationId: evaluationDoc.id,
+            reason: error.message
+          });
+        }
+      });
+    }
+
+    evaluations.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    return { evaluations: evaluations.slice(0, 12) };
+  }
+);
+
 exports.saveFeedback = onCall(
   {
     region: 'us-central1',

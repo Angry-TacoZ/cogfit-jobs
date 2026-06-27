@@ -178,6 +178,17 @@ export async function saveCloudEvaluation(profile, evaluation, jobAd) {
   });
 }
 
+export async function loadCloudEvaluations() {
+  return runProtectedCall(async () => {
+    await startAppCheck();
+    await requireCurrentUser('loading saved evaluations');
+    const functions = getFunctions(await getFirebaseApp(), 'us-central1');
+    const getUserEvaluations = httpsCallable(functions, 'getUserEvaluations');
+    const response = await getUserEvaluations({});
+    return Array.isArray(response.data?.evaluations) ? response.data.evaluations : [];
+  });
+}
+
 export async function saveCloudFeedback(profileId, evaluationId, value) {
   return runProtectedCall(async () => {
     await startAppCheck();

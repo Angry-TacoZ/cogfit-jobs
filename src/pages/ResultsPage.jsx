@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '../components/Button';
 import ScoreCard from '../components/ScoreCard';
 import SectionPanel from '../components/SectionPanel';
 import { evaluationToMarkdown } from '../lib/evaluator';
-import { loadGeneratedProfile, loadEvaluations, saveFeedback } from '../lib/storage';
-import { saveCloudFeedback } from '../lib/firebaseClient';
+import { loadGeneratedProfile, loadEvaluations, mergeEvaluations, saveEvaluations, saveFeedback } from '../lib/storage';
+import { loadCloudEvaluations, saveCloudFeedback, watchAuth } from '../lib/firebaseClient';
 
 const feedbackOptions = ['accurate', 'too optimistic', 'too pessimistic', 'missed key constraint', 'misunderstood my experience'];
 
@@ -13,11 +13,47 @@ function listItems(items = []) {
 }
 
 export default function ResultsPage({ go }) {
-  const [evaluations] = useState(loadEvaluations());
+  const [evaluations, setEvaluations] = useState(loadEvaluations());
   const [selectedId, setSelectedId] = useState(evaluations[0]?.id);
   const [copied, setCopied] = useState('');
+  const [historyStatus, setHistoryStatus] = useState('');
   const profile = loadGeneratedProfile();
   const evaluation = evaluations.find((item) => item.id === selectedId) || evaluations[0];
+
+  useEffect(() => {
+    let stopped = false;
+    let unsubscribe;
+
+    watchAuth((user) => {
+      if (!user) return;
+      loadCloudEvaluations()
+        .then((cloudEvaluations) => {
+          if (stopped || cloudEvaluations.length === 0) return;
+          setEvaluations((current) => {
+            const merged = mergeEvaluations(cloudEvaluations, current);
+            saveEvaluations(merged);
+            setSelectedId((currentId) => currentId || merged[0]?.id);
+            return merged;
+          });
+        })
+        .catch(() => {
+          if (!stopped) {
+            setHistoryStatus('Saved evaluation history could not be refreshed. Local results are still available.');
+          }
+        });
+    }).then((unwatch) => {
+      unsubscribe = unwatch;
+    }).catch(() => {
+      if (!stopped) {
+        setHistoryStatus('Saved evaluation history could not be refreshed. Local results are still available.');
+      }
+    });
+
+    return () => {
+      stopped = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   if (!evaluation) {
     return (
@@ -82,14 +118,17 @@ export default function ResultsPage({ go }) {
           <Button onClick={() => go('evaluator')}>Run another job ad</Button>
         </div>
       </div>
-      {evaluations.length > 1 && (
-        <label className="field inline-select">
-          <span>Past evaluations</span>
-          <select value={evaluation.id} onChange={(event) => setSelectedId(event.target.value)}>
-            {evaluations.map((item) => <option key={item.id} value={item.id}>{item.jobTitle} at {item.company}</option>)}
-          </select>
-        </label>
-      )}
+      <div className="results-toolbar">
+        {evaluations.length > 1 && (
+          <label className="field inline-select">
+            <span>Past evaluations</span>
+            <select value={evaluation.id} onChange={(event) => setSelectedId(event.target.value)}>
+              {evaluations.map((item) => <option key={item.id} value={item.id}>{item.jobTitle} at {item.company}</option>)}
+            </select>
+          </label>
+        )}
+      </div>
+      {historyStatus && <div className="error">{historyStatus}</div>}
       {copied && <div className="success">{copied}</div>}
       <section className={`recommendation ${evaluation.decision.toLowerCase()}`}>
         <strong>{evaluation.decision}</strong>

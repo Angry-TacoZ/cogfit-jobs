@@ -494,6 +494,16 @@ a {
   max-width: 520px;
 }
 
+.results-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.results-toolbar .inline-select {
+  width: min(100%, 520px);
+}
+
 .error,
 .success {
   border-radius: 8px;
@@ -978,6 +988,15 @@ ol {
 
   .score-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .results-toolbar {
+    justify-content: stretch;
+  }
+
+  .results-toolbar .inline-select {
+    max-width: none;
+    width: 100%;
   }
 
 }

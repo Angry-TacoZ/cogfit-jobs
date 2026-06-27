@@ -38,9 +38,43 @@ export function loadEvaluations() {
   return loadItem(keys.evaluations, []);
 }
 
+function evaluationKey(evaluation) {
+  if (evaluation?.id) return `id:${evaluation.id}`;
+  return [
+    evaluation?.jobTitle || 'untitled',
+    evaluation?.company || 'unknown',
+    evaluation?.createdAt || 'undated'
+  ].join('|');
+}
+
+function evaluationTime(evaluation) {
+  const parsed = Date.parse(evaluation?.createdAt || '');
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function mergeEvaluations(...groups) {
+  const seen = new Set();
+  const merged = [];
+
+  groups.flat().forEach((evaluation) => {
+    if (!evaluation || typeof evaluation !== 'object') return;
+    const key = evaluationKey(evaluation);
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(evaluation);
+  });
+
+  return merged
+    .sort((a, b) => evaluationTime(b) - evaluationTime(a))
+    .slice(0, 12);
+}
+
+export function saveEvaluations(evaluations) {
+  saveItem(keys.evaluations, mergeEvaluations(evaluations));
+}
+
 export function saveEvaluation(evaluation) {
-  const evaluations = loadEvaluations();
-  saveItem(keys.evaluations, [evaluation, ...evaluations].slice(0, 12));
+  saveEvaluations([evaluation, ...loadEvaluations()]);
 }
 
 export function saveFeedback(evaluationId, value) {
