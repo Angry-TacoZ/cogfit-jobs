@@ -5,7 +5,6 @@ const { defineInt, defineSecret, defineString } = require('firebase-functions/pa
 const { GoogleGenAI } = require('@google/genai');
 const {
   PayloadValidationError,
-  reportSchema,
   workFitProfileSchema,
   normalizeEvaluation,
   normalizeFeedbackPayload,
@@ -143,6 +142,43 @@ function buildPrompt(profile, jobAd) {
     `Work-fit profile JSON:\n${JSON.stringify(profile, null, 2)}`,
     '',
     `Job ad JSON:\n${JSON.stringify(jobAd, null, 2)}`
+  ].join('\n');
+}
+
+function buildReportPrompt(profile, jobAd) {
+  return [
+    buildPrompt(profile, jobAd),
+    '',
+    'Return exactly one valid JSON object. Do not use Markdown. Do not include comments.',
+    'Keep prose concise. Each string field should be one or two practical sentences.',
+    'Each list should contain 2 to 4 short items.',
+    'Use this exact JSON shape:',
+    JSON.stringify({
+      overallRecommendation: 'Direct recommendation with uncertainty stated.',
+      decision: 'Apply | Maybe | Skip',
+      scores: {
+        roleFit: 0,
+        callbackLikelihood: 0,
+        cognitiveFit: 0,
+        workstyleRisk: 0,
+        systemsMatch: 0,
+        skillsEvidence: 0,
+        confidence: 0
+      },
+      sections: {
+        systemsThinkingMatch: 'Why the systems-thinking score is justified.',
+        skillsEvidenceMatch: 'Why the skills and evidence score is justified.',
+        dayToDayReality: 'Likely day-to-day work based on the ad.',
+        potentialRisks: ['Risk to verify'],
+        resumePositioningAngle: 'How to frame the candidate for this role.',
+        interviewTalkingPoints: ['Specific talking point'],
+        verifyBeforeApplying: ['Specific question to verify'],
+        improveScore: ['Evidence or constraint that would improve the score'],
+        evidenceToAdd: ['Artifact or proof to add']
+      },
+      missingInformation: ['Missing evidence or uncertainty'],
+      assumptions: ['Visible assumption made from the supplied data']
+    })
   ].join('\n');
 }
 
@@ -454,6 +490,43 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens, outputL
   throw new HttpsError(classified.code, classified.message);
 }
 
+async function generatePlainGeminiJson(prompt, maxOutputTokens, outputLabel = 'structured JSON') {
+  const apiKey = geminiApiKey.value();
+  if (!apiKey) {
+    throw new HttpsError('failed-precondition', 'GEMINI_API_KEY is not configured on the server.');
+  }
+
+  const model = geminiModel.value();
+  const client = new GoogleGenAI({ apiKey });
+  const failures = [];
+
+  for (let retry = 0; retry < 2; retry += 1) {
+    try {
+      const response = await client.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          maxOutputTokens,
+          temperature: 0.1
+        }
+      });
+      return parseGeminiJson(response, outputLabel);
+    } catch (error) {
+      const failure = { model, schemaMode: 'plain', retry, error: apiErrorSummary(error) };
+      failures.push(failure);
+      console.error('Gemini plain JSON generation attempt failed', failure);
+      if (!isTransientGeminiError(error) || retry === 1) {
+        break;
+      }
+      await sleep(1200 * (retry + 1));
+    }
+  }
+
+  const classified = classifyGeminiFailures(failures, outputLabel);
+  throw new HttpsError(classified.code, classified.message);
+}
+
 exports.generateProfile = onCall(
   {
     region: 'us-central1',
@@ -615,7 +688,7 @@ exports.evaluateJob = onCall(
     return runCallableAction('Live evaluation', async () => {
       await requireProtectedUser(request, 'live evaluation', { consumeQuota: true });
       const { profile, jobAd } = validateRequest(request.data);
-      const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 3600, 'structured report');
+      const report = await generatePlainGeminiJson(buildReportPrompt(profile, jobAd), 2600, 'structured report');
 
       return withPayloadValidation(() => normalizeEvaluation({
         id: crypto.randomUUID(),
