@@ -299,6 +299,12 @@ function classifyGeminiFailures(failures) {
       message: 'The configured Gemini model is not available to this API key yet.'
     };
   }
+  if (statusValues.some((status) => status === 400) && (messages.includes('model') || messages.includes('invalid'))) {
+    return {
+      code: 'failed-precondition',
+      message: 'Gemini rejected the configured model or structured output request. Check the GEMINI_MODEL Functions setting.'
+    };
+  }
   if (statusValues.some((status) => status === 429) || messages.includes('quota')) {
     return {
       code: 'resource-exhausted',
@@ -322,6 +328,27 @@ function classifyGeminiFailures(failures) {
     code: 'failed-precondition',
     message: 'Live Gemini generation failed after retrying supported JSON output modes.'
   };
+}
+
+function toCallableError(error, fallbackMessage) {
+  if (error instanceof HttpsError) {
+    return error;
+  }
+  if (error instanceof PayloadValidationError) {
+    return new HttpsError('invalid-argument', error.message);
+  }
+
+  const classified = classifyGeminiFailures([{ error: apiErrorSummary(error) }]);
+  console.error('Callable action failed unexpectedly', apiErrorSummary(error));
+  return new HttpsError(classified.code || 'failed-precondition', classified.message || fallbackMessage);
+}
+
+async function runCallableAction(actionLabel, callback) {
+  try {
+    return await callback();
+  } catch (error) {
+    throw toCallableError(error, `${actionLabel} failed on the server.`);
+  }
 }
 
 function plainJsonPrompt(prompt, schema) {
@@ -552,20 +579,22 @@ exports.evaluateJob = onCall(
     secrets: [geminiApiKey]
   },
   async (request) => {
-    await requireProtectedUser(request, 'live evaluation', { consumeQuota: true });
-    const { profile, jobAd } = validateRequest(request.data);
-    const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800);
+    return runCallableAction('Live evaluation', async () => {
+      await requireProtectedUser(request, 'live evaluation', { consumeQuota: true });
+      const { profile, jobAd } = validateRequest(request.data);
+      const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800);
 
-    return withPayloadValidation(() => normalizeEvaluation({
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      jobTitle: jobAd.title,
-      company: jobAd.company || 'Unknown company',
-      ...report,
-      assumptions: [
-        ...(report.assumptions || []),
-        'This live report is model-generated from the supplied profile and job ad, not a hiring prediction.'
-      ]
-    }));
+      return withPayloadValidation(() => normalizeEvaluation({
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        jobTitle: jobAd.title,
+        company: jobAd.company || 'Unknown company',
+        ...report,
+        assumptions: [
+          ...(report.assumptions || []),
+          'This live report is model-generated from the supplied profile and job ad, not a hiring prediction.'
+        ]
+      }));
+    });
   }
 );
