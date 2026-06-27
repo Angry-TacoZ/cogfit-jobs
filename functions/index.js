@@ -241,12 +241,33 @@ function extractJsonObject(text) {
   throw new Error('Gemini response contained incomplete JSON.');
 }
 
-function parseGeminiJson(response) {
-  if (!response.text) {
-    throw new Error('Gemini response did not include output text.');
+function getGeminiResponseText(response) {
+  if (typeof response?.text === 'string') {
+    return response.text;
+  }
+  if (typeof response?.text === 'function') {
+    const textResult = response.text();
+    if (typeof textResult === 'string') {
+      return textResult;
+    }
   }
 
-  return JSON.parse(extractJsonObject(response.text));
+  const candidateText = response?.candidates
+    ?.flatMap((candidate) => candidate?.content?.parts || [])
+    .map((part) => part?.text)
+    .filter(Boolean)
+    .join('\n');
+
+  return candidateText || '';
+}
+
+function parseGeminiJson(response, outputLabel = 'JSON response') {
+  const text = getGeminiResponseText(response);
+  if (!text) {
+    throw new Error(`Gemini response did not include output text for ${outputLabel}.`);
+  }
+
+  return JSON.parse(extractJsonObject(text));
 }
 
 async function requireProtectedUser(request, actionLabel, { consumeQuota = false } = {}) {
@@ -283,7 +304,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function classifyGeminiFailures(failures) {
+function classifyGeminiFailures(failures, outputLabel = 'structured JSON') {
   const statusValues = failures.map((failure) => Number(failure.error?.status)).filter(Boolean);
   const messages = failures.map((failure) => String(failure.error?.message || '').toLowerCase()).join('\n');
 
@@ -320,17 +341,17 @@ function classifyGeminiFailures(failures) {
   if (failures.some((failure) => failure.error?.name === 'SyntaxError' || String(failure.error?.message || '').includes('JSON'))) {
     return {
       code: 'failed-precondition',
-      message: 'Gemini returned output that could not be parsed as the expected structured profile. Try again with slightly shorter answers.'
+      message: `Gemini returned output that could not be parsed as the expected ${outputLabel}. Try again with slightly shorter input.`
     };
   }
 
   return {
     code: 'failed-precondition',
-    message: 'Live Gemini generation failed after retrying supported JSON output modes.'
+    message: `Live Gemini generation failed after retrying supported ${outputLabel} output modes.`
   };
 }
 
-function toCallableError(error, fallbackMessage) {
+function toCallableError(error, fallbackMessage, outputLabel = 'structured JSON') {
   if (error instanceof HttpsError) {
     return error;
   }
@@ -338,16 +359,16 @@ function toCallableError(error, fallbackMessage) {
     return new HttpsError('invalid-argument', error.message);
   }
 
-  const classified = classifyGeminiFailures([{ error: apiErrorSummary(error) }]);
+  const classified = classifyGeminiFailures([{ error: apiErrorSummary(error) }], outputLabel);
   console.error('Callable action failed unexpectedly', apiErrorSummary(error));
   return new HttpsError(classified.code || 'failed-precondition', classified.message || fallbackMessage);
 }
 
-async function runCallableAction(actionLabel, callback) {
+async function runCallableAction(actionLabel, callback, outputLabel) {
   try {
     return await callback();
   } catch (error) {
-    throw toCallableError(error, `${actionLabel} failed on the server.`);
+    throw toCallableError(error, `${actionLabel} failed on the server.`, outputLabel);
   }
 }
 
@@ -386,7 +407,7 @@ async function callGeminiJson(client, model, prompt, schema, maxOutputTokens, sc
   });
 }
 
-async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
+async function generateStructuredGemini(prompt, schema, maxOutputTokens, outputLabel = 'structured JSON') {
   const apiKey = geminiApiKey.value();
   if (!apiKey) {
     throw new HttpsError('failed-precondition', 'GEMINI_API_KEY is not configured on the server.');
@@ -405,7 +426,7 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
     for (let retry = 0; retry < 3; retry += 1) {
       try {
         const response = await callGeminiJson(client, attempt.model, prompt, schema, maxOutputTokens, attempt.schemaMode);
-        return parseGeminiJson(response);
+        return parseGeminiJson(response, outputLabel);
       } catch (error) {
         const failure = { ...attempt, retry, error: apiErrorSummary(error) };
         failures.push(failure);
@@ -418,7 +439,7 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens) {
     }
   }
 
-  const classified = classifyGeminiFailures(failures);
+  const classified = classifyGeminiFailures(failures, outputLabel);
   throw new HttpsError(classified.code, classified.message);
 }
 
@@ -438,7 +459,8 @@ exports.generateProfile = onCall(
     const generatedProfile = await generateStructuredGemini(
       buildProfilePrompt(answers, draftProfile),
       workFitProfileSchema,
-      3200
+      3200,
+      'structured profile'
     );
     return withPayloadValidation(() => normalizeWorkFitProfile(preserveDraftEvidence(generatedProfile, draftProfile)));
   }
@@ -582,7 +604,7 @@ exports.evaluateJob = onCall(
     return runCallableAction('Live evaluation', async () => {
       await requireProtectedUser(request, 'live evaluation', { consumeQuota: true });
       const { profile, jobAd } = validateRequest(request.data);
-      const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800);
+      const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800, 'structured report');
 
       return withPayloadValidation(() => normalizeEvaluation({
         id: crypto.randomUUID(),
@@ -595,6 +617,6 @@ exports.evaluateJob = onCall(
           'This live report is model-generated from the supplied profile and job ad, not a hiring prediction.'
         ]
       }));
-    });
+    }, 'structured report');
   }
 );
