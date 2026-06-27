@@ -267,7 +267,18 @@ function parseGeminiJson(response, outputLabel = 'JSON response') {
     throw new Error(`Gemini response did not include output text for ${outputLabel}.`);
   }
 
-  return JSON.parse(extractJsonObject(text));
+  try {
+    return JSON.parse(extractJsonObject(text));
+  } catch (error) {
+    console.error('Gemini JSON parse failed', {
+      outputLabel,
+      textLength: text.length,
+      firstCharacter: text.trim().slice(0, 1),
+      lastCharacter: text.trim().slice(-1),
+      error: apiErrorSummary(error)
+    });
+    throw error;
+  }
 }
 
 async function requireProtectedUser(request, actionLabel, { consumeQuota = false } = {}) {
@@ -604,7 +615,7 @@ exports.evaluateJob = onCall(
     return runCallableAction('Live evaluation', async () => {
       await requireProtectedUser(request, 'live evaluation', { consumeQuota: true });
       const { profile, jobAd } = validateRequest(request.data);
-      const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 1800, 'structured report');
+      const report = await generateStructuredGemini(buildPrompt(profile, jobAd), reportSchema, 3600, 'structured report');
 
       return withPayloadValidation(() => normalizeEvaluation({
         id: crypto.randomUUID(),
