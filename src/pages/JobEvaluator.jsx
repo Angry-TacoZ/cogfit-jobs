@@ -104,8 +104,13 @@ export default function JobEvaluator({ go }) {
     setLoading(true);
     try {
       const evaluation = await llmAdapter.evaluateJob(profile, job);
-      const savedEvaluation = await saveCloudEvaluation(profile, evaluation, job);
-      saveEvaluation(savedEvaluation);
+      saveEvaluation(evaluation);
+      try {
+        const savedEvaluation = await saveCloudEvaluation(profile, evaluation, job);
+        saveEvaluation(savedEvaluation);
+      } catch (cloudSaveError) {
+        console.warn('Cloud evaluation save failed after live evaluation succeeded', cloudSaveError);
+      }
       go('results');
     } catch (evaluationError) {
       setError(evaluationError?.message || 'The evaluator failed. Your profile and job text are still saved locally if you entered them.');
