@@ -410,6 +410,84 @@ a {
   padding: clamp(20px, 4vw, 34px);
 }
 
+.panel-subcopy,
+.hint-text {
+  margin-top: -4px;
+  margin-bottom: 20px;
+  color: var(--muted);
+}
+
+.resume-start-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.resume-start-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.resume-step-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.resume-step-list span {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #344056;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+.upload-box {
+  display: grid;
+  gap: 10px;
+  align-content: center;
+  min-height: 180px;
+  border: 1px dashed #95a3b8;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fafc, #eef7f5);
+  padding: 18px;
+}
+
+.upload-box span {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.upload-box input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  padding: 10px;
+}
+
+.upload-box small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.resume-import-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.resume-import-footer > span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
 .auth-panel {
   margin-bottom: 18px;
   display: grid;
@@ -808,6 +886,14 @@ ol {
   gap: 16px;
 }
 
+.compact-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.resume-evidence-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #f6fbfa 100%);
+}
+
 .profile-card {
   padding: 18px;
 }
@@ -978,6 +1064,7 @@ ol {
     .two-col,
     .detail-grid,
     .profile-grid,
+    .resume-start-grid,
     .pie-layout {
       grid-template-columns: 1fr;
   }
@@ -1028,8 +1115,14 @@ ol {
 
   .btn,
   .hero-actions,
-  .sample-row {
+  .sample-row,
+  .resume-import-footer {
     width: 100%;
+  }
+
+  .resume-import-footer {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .motion-cog-briefcase {

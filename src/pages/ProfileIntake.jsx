@@ -3,13 +3,27 @@ import Button from '../components/Button';
 import AuthPanel from '../components/AuthPanel';
 import { profileSections, questionCount, needsAdaptiveQuestions } from '../lib/profileScoring';
 import { llmAdapter } from '../lib/llmAdapter';
-import { loadGeneratedProfile, loadProfileAnswers, saveGeneratedProfile, saveProfileAnswers } from '../lib/storage';
+import {
+  loadGeneratedProfile,
+  loadProfileAnswers,
+  loadResumeEvidence,
+  loadResumeText,
+  saveGeneratedProfile,
+  saveProfileAnswers,
+  saveResumeEvidence,
+  saveResumeText
+} from '../lib/storage';
+import { buildResumeBaselineProfile, buildResumeSeedAnswers, extractResumeEvidence } from '../lib/resumeEvidence';
 import { sampleProfileAnswers } from '../data/sampleProfiles';
 import { saveCloudProfile } from '../lib/firebaseClient';
 
 const includesAny = (value, terms) => terms.some((term) => String(value || '').toLowerCase().includes(term));
 const asText = (value) => Array.isArray(value) ? value.join(' ') : String(value || '');
 const clamp = (value) => Math.min(100, Math.max(0, value));
+const calibrationQuestionIds = ['q3', 'q8', 'q9', 'q13', 'q14', 'q17', 'q21', 'q24'];
+const calibrationQuestions = profileSections
+  .flatMap((section) => section.questions)
+  .filter(([id]) => calibrationQuestionIds.includes(id));
 
 function buildWorkProfileWeights(profile) {
   const energizers = asText(profile?.energizers);
@@ -73,6 +87,28 @@ function ProfileList({ title, items }) {
   );
 }
 
+function ResumeEvidenceSummary({ evidence }) {
+  if (!evidence) return null;
+
+  return (
+    <section className="profile-panel resume-evidence-panel">
+      <div className="profile-panel-heading">
+        <div>
+          <h2>Resume evidence imported</h2>
+          <p>These facts seed the baseline profile. Calibration questions refine workstyle and sustainability.</p>
+        </div>
+        <strong>{evidence.confidence || 0}/100 evidence confidence</strong>
+      </div>
+      <div className="profile-grid compact-grid">
+        <ProfileList title="Tools and systems found" items={evidence.tools} />
+        <ProfileList title="Evidence categories" items={evidence.evidence} />
+        <ProfileList title="Domains detected" items={evidence.domains} />
+        <ProfileList title="Titles detected" items={evidence.titles} />
+      </div>
+    </section>
+  );
+}
+
 function ProfileWeights({ profile }) {
   return (
     <section className="profile-panel">
@@ -103,9 +139,10 @@ function ProfileWeights({ profile }) {
   );
 }
 
-function ProfileReview({ profile, onEdit, onEvaluate }) {
+function ProfileReview({ profile, evidence, onEdit, onEvaluate }) {
   return (
     <>
+      <ResumeEvidenceSummary evidence={evidence} />
       <ProfileWeights profile={profile} />
       <div className="profile-grid">
         <ProfileList title="Target role families" items={profile.target_role_families} />
@@ -125,8 +162,80 @@ function ProfileReview({ profile, onEdit, onEvaluate }) {
       )}
       <div className="split-actions profile-actions">
         <Button onClick={onEvaluate}>Evaluate a job ad</Button>
-        <Button variant="secondary" onClick={onEdit}>Edit intake responses</Button>
+        <Button variant="secondary" onClick={onEdit}>Improve matching</Button>
       </div>
+    </>
+  );
+}
+
+function ResumeImportPanel({ resumeText, loading, onTextChange, onFileUpload, onCreateBaseline, onShowQuestions }) {
+  const ready = resumeText.trim().length >= 400;
+
+  return (
+    <section className="form-panel resume-start-panel">
+      <div className="resume-start-grid">
+        <div>
+          <h2>Start with your resume</h2>
+          <p>Paste your resume or upload a DOCX or text file. CogFit Jobs will extract a baseline evidence profile first, then ask a few calibration questions for workstyle precision.</p>
+          <div className="resume-step-list" aria-label="Resume-first flow">
+            <span>1. Import resume evidence</span>
+            <span>2. Review baseline profile</span>
+            <span>3. Answer targeted calibration questions</span>
+          </div>
+        </div>
+        <label className="upload-box">
+          <span>Upload resume</span>
+          <input type="file" accept=".docx,.txt,.md,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onFileUpload} />
+          <small>DOCX and plain text are supported in this prototype.</small>
+        </label>
+      </div>
+      <label className="field wide">
+        <span>Resume text</span>
+        <textarea
+          rows={14}
+          value={resumeText}
+          onChange={(event) => onTextChange(event.target.value)}
+          placeholder="Paste your resume text here, or upload a DOCX file above."
+        />
+      </label>
+      <div className="resume-import-footer">
+        <span>{resumeText.trim().length.toLocaleString()} characters imported</span>
+        <div className="split-actions compact">
+          <Button onClick={onCreateBaseline} disabled={loading || !ready}>{loading ? 'Reading resume...' : 'Create baseline profile'}</Button>
+          <Button variant="secondary" onClick={onShowQuestions}>Skip to full intake</Button>
+        </div>
+      </div>
+      {!ready && <p className="hint-text">A longer resume sample gives the extractor enough evidence to build a useful baseline.</p>}
+    </section>
+  );
+}
+
+function CalibrationPanel({ answers, progress, loading, onUpdate, onSave, onShowFullIntake }) {
+  const answeredCalibration = calibrationQuestions.filter(([id]) => String(answers[id] || '').trim()).length;
+
+  return (
+    <>
+      <div className="progress-wrap">
+        <div className="progress-label">
+          <span>{answeredCalibration} of {calibrationQuestions.length} calibration questions answered</span>
+          <strong>{progress}% full profile</strong>
+        </div>
+        <div className="progress"><span style={{ width: `${progress}%` }} /></div>
+      </div>
+      <section className="form-panel">
+        <h2>Improve matching precision</h2>
+        <p className="panel-subcopy">The resume gives evidence. These questions tell the evaluator what work is sustainable, draining, or a hard constraint.</p>
+        {calibrationQuestions.map(([id, label]) => (
+          <label className="field" key={id}>
+            <span>{label}</span>
+            <textarea value={answers[id] || ''} onChange={(event) => onUpdate(id, event.target.value)} rows={4} />
+          </label>
+        ))}
+        <div className="split-actions">
+          <Button onClick={onSave} disabled={loading}>{loading ? 'Updating profile...' : 'Update profile'}</Button>
+          <Button variant="secondary" onClick={onShowFullIntake}>Open full 24-question intake</Button>
+        </div>
+      </section>
     </>
   );
 }
@@ -134,9 +243,12 @@ function ProfileReview({ profile, onEdit, onEvaluate }) {
 export default function ProfileIntake({ go }) {
   const savedProfile = loadGeneratedProfile();
   const [answers, setAnswers] = useState(loadProfileAnswers());
+  const [resumeText, setResumeText] = useState(loadResumeText());
+  const [resumeEvidence, setResumeEvidence] = useState(loadResumeEvidence());
   const [sectionIndex, setSectionIndex] = useState(0);
   const [profile, setProfile] = useState(savedProfile);
   const [editing, setEditing] = useState(!savedProfile);
+  const [intakeMode, setIntakeMode] = useState(savedProfile ? 'calibration' : 'resume');
   const [adaptive, setAdaptive] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -149,6 +261,59 @@ export default function ProfileIntake({ go }) {
     const next = { ...answers, [id]: value };
     setAnswers(next);
     saveProfileAnswers(next);
+  };
+
+  const updateResumeText = (value) => {
+    setResumeText(value);
+    saveResumeText(value);
+  };
+
+  const uploadResume = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setNotice('');
+    setLoading(true);
+    try {
+      if (file.name.toLowerCase().endsWith('.docx')) {
+        const mammoth = await import('mammoth/mammoth.browser');
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        updateResumeText(result.value || '');
+      } else {
+        updateResumeText(await file.text());
+      }
+      setNotice(`Imported ${file.name}. Review the text, then create the baseline profile.`);
+    } catch (uploadError) {
+      setError(uploadError?.message || 'Resume upload failed. Paste the resume text instead.');
+    } finally {
+      setLoading(false);
+      event.target.value = '';
+    }
+  };
+
+  const createBaselineProfile = () => {
+    setError('');
+    setNotice('');
+    const text = resumeText.trim();
+    if (text.length < 400) {
+      setError('Add more resume text before creating the baseline profile.');
+      return;
+    }
+
+    const evidence = extractResumeEvidence(text);
+    const seededAnswers = { ...answers, ...buildResumeSeedAnswers(evidence) };
+    const baseline = buildResumeBaselineProfile(evidence);
+    setResumeEvidence(evidence);
+    saveResumeEvidence(evidence);
+    setAnswers(seededAnswers);
+    saveProfileAnswers(seededAnswers);
+    setProfile(baseline);
+    saveGeneratedProfile(baseline);
+    setEditing(false);
+    setIntakeMode('calibration');
+    setAdaptive([]);
+    setNotice('Baseline profile created from resume evidence. Answer calibration questions to improve workstyle precision.');
   };
 
   const saveProfile = async () => {
@@ -187,6 +352,7 @@ export default function ProfileIntake({ go }) {
     setAnswers(sampleProfileAnswers);
     saveProfileAnswers(sampleProfileAnswers);
     setEditing(true);
+    setIntakeMode('questions');
     setNotice('Sample answers loaded. Generate the profile to update this view.');
   };
 
@@ -194,11 +360,10 @@ export default function ProfileIntake({ go }) {
     <div className="page narrow">
       <div className="page-heading">
         <div>
-          <h1>{profile && !editing ? 'Your work-fit profile' : 'Create your work-fit profile'}</h1>
-          <p>{profile && !editing ? 'Review the generated profile the evaluator uses for job-fit analysis.' : 'Answer 24 focused questions. Save and resume anytime. Longer, concrete answers produce higher confidence.'}</p>
+          <h1>{profile && !editing ? 'Your work-fit profile' : intakeMode === 'resume' ? 'Create your profile from a resume' : 'Refine your work-fit profile'}</h1>
+          <p>{profile && !editing ? 'Review the generated profile the evaluator uses for job-fit analysis.' : intakeMode === 'resume' ? 'Start with resume evidence, then answer a few calibration questions for better matching.' : 'Answer the questions that improve workstyle, constraints, and bad-fit precision.'}</p>
         </div>
         <div className="split-actions compact">
-          {profile && !editing && <Button variant="secondary" onClick={() => setEditing(true)}>Edit responses</Button>}
           <Button variant="secondary" onClick={useSample}>Load sample profile</Button>
         </div>
       </div>
@@ -206,7 +371,25 @@ export default function ProfileIntake({ go }) {
       {notice && <div className="success">{notice}</div>}
       {error && <div className="error">{error}</div>}
       {!editing && profile ? (
-        <ProfileReview profile={profile} onEdit={() => setEditing(true)} onEvaluate={() => go('evaluator')} />
+        <ProfileReview profile={profile} evidence={resumeEvidence} onEdit={() => { setEditing(true); setIntakeMode('calibration'); }} onEvaluate={() => go('evaluator')} />
+      ) : intakeMode === 'resume' ? (
+        <ResumeImportPanel
+          resumeText={resumeText}
+          loading={loading}
+          onTextChange={updateResumeText}
+          onFileUpload={uploadResume}
+          onCreateBaseline={createBaselineProfile}
+          onShowQuestions={() => setIntakeMode('questions')}
+        />
+      ) : intakeMode === 'calibration' ? (
+        <CalibrationPanel
+          answers={answers}
+          progress={progress}
+          loading={loading}
+          onUpdate={update}
+          onSave={saveProfile}
+          onShowFullIntake={() => setIntakeMode('questions')}
+        />
       ) : (
         <>
           <div className="progress-wrap">
