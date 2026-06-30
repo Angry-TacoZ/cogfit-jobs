@@ -1,6 +1,8 @@
 const keys = {
   answers: 'cogfit.profileAnswers',
   profile: 'cogfit.generatedProfile',
+  resumeEvidence: 'cogfit.resumeEvidence',
+  resumeText: 'cogfit.resumeText',
   evaluations: 'cogfit.evaluations',
   feedback: 'cogfit.feedback'
 };
@@ -32,6 +34,22 @@ export function loadGeneratedProfile() {
 
 export function saveGeneratedProfile(profile) {
   saveItem(keys.profile, profile);
+}
+
+export function loadResumeEvidence() {
+  return loadItem(keys.resumeEvidence, null);
+}
+
+export function saveResumeEvidence(evidence) {
+  saveItem(keys.resumeEvidence, evidence);
+}
+
+export function loadResumeText() {
+  return loadItem(keys.resumeText, '');
+}
+
+export function saveResumeText(text) {
+  saveItem(keys.resumeText, String(text || ''));
 }
 
 export function loadEvaluations() {
