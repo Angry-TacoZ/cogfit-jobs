@@ -1,6 +1,6 @@
 # CogFit Jobs
 
-CogFit Jobs is a public-facing React and Vite prototype for profile-based job-fit analysis. It helps nontraditional candidates compare a job ad against work style, evidence, constraints, cognitive fit, and likely day-to-day role demands.
+CogFit Jobs is a public-facing Svelte and Vite prototype for profile-based job-fit analysis. It helps nontraditional candidates compare a job ad against work style, evidence, constraints, cognitive fit, and likely day-to-day role demands.
 
 Live profile generation and job evaluation run through Firebase callable Cloud Functions. The browser never receives the Gemini API key. Profile answers, generated profiles, evaluations, and feedback are cached in `localStorage` and saved to Firestore under the signed-in user's account.
 
