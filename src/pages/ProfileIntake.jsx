@@ -4,6 +4,7 @@ import AuthPanel from '../components/AuthPanel';
 import { profileSections, questionCount, needsAdaptiveQuestions } from '../lib/profileScoring';
 import { llmAdapter } from '../lib/llmAdapter';
 import {
+  clearResumeImport,
   loadGeneratedProfile,
   loadProfileAnswers,
   loadResumeEvidence,
@@ -268,6 +269,12 @@ export default function ProfileIntake({ go }) {
     saveResumeText(value);
   };
 
+  const clearResumeImportState = () => {
+    setResumeEvidence(null);
+    setResumeText('');
+    clearResumeImport();
+  };
+
   const uploadResume = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -321,6 +328,9 @@ export default function ProfileIntake({ go }) {
     setNotice('');
     setLoading(true);
     try {
+      if (intakeMode === 'questions') {
+        clearResumeImportState();
+      }
       const generated = await llmAdapter.generateProfileSummary(answers);
       saveGeneratedProfile(generated);
       setProfile(generated);
@@ -349,6 +359,7 @@ export default function ProfileIntake({ go }) {
   };
 
   const useSample = () => {
+    clearResumeImportState();
     setAnswers(sampleProfileAnswers);
     saveProfileAnswers(sampleProfileAnswers);
     setEditing(true);
@@ -379,7 +390,10 @@ export default function ProfileIntake({ go }) {
           onTextChange={updateResumeText}
           onFileUpload={uploadResume}
           onCreateBaseline={createBaselineProfile}
-          onShowQuestions={() => setIntakeMode('questions')}
+          onShowQuestions={() => {
+            clearResumeImportState();
+            setIntakeMode('questions');
+          }}
         />
       ) : intakeMode === 'calibration' ? (
         <CalibrationPanel

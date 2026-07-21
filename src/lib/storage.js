@@ -20,6 +20,10 @@ export function saveItem(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+export function removeItem(key) {
+  localStorage.removeItem(key);
+}
+
 export function loadProfileAnswers() {
   return loadItem(keys.answers, {});
 }
@@ -50,6 +54,11 @@ export function loadResumeText() {
 
 export function saveResumeText(text) {
   saveItem(keys.resumeText, String(text || ''));
+}
+
+export function clearResumeImport() {
+  removeItem(keys.resumeEvidence);
+  removeItem(keys.resumeText);
 }
 
 export function loadEvaluations() {
