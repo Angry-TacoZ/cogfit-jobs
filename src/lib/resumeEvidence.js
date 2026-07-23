@@ -129,6 +129,15 @@ export function extractResumeEvidence(resumeText) {
   };
 }
 
+export function countUsableResumeEvidence(evidence) {
+  return ['tools', 'evidence', 'domains', 'projects', 'systemsEvidence']
+    .reduce((count, key) => count + (Array.isArray(evidence?.[key]) ? evidence[key].length : 0), 0);
+}
+
+export function hasUsableResumeEvidence(evidence, minimumSignals = 3) {
+  return countUsableResumeEvidence(evidence) >= minimumSignals;
+}
+
 export function buildResumeSeedAnswers(evidence) {
   const projectEvidence = unique([...evidence.projects, ...evidence.evidence], 10).join('; ');
   return {

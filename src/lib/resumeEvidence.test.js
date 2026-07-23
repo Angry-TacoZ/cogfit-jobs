@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildResumeBaselineProfile, buildResumeSeedAnswers, extractResumeEvidence } from './resumeEvidence';
+import {
+  buildResumeBaselineProfile,
+  buildResumeSeedAnswers,
+  countUsableResumeEvidence,
+  extractResumeEvidence,
+  hasUsableResumeEvidence
+} from './resumeEvidence';
 
 const resumeText = `
 James Lane
@@ -43,5 +49,21 @@ describe('resume evidence extraction', () => {
       'negative-fit job history'
     ]));
     expect(profile.confidence_score).toBeLessThan(80);
+  });
+
+  it('rejects long input that contains no usable resume evidence', () => {
+    const unsupportedText = 'Experienced professional with excellent communication and consistently strong performance. '.repeat(8);
+    const evidence = extractResumeEvidence(unsupportedText);
+
+    expect(unsupportedText.length).toBeGreaterThan(400);
+    expect(countUsableResumeEvidence(evidence)).toBe(0);
+    expect(hasUsableResumeEvidence(evidence)).toBe(false);
+  });
+
+  it('accepts a resume after extracting multiple usable evidence signals', () => {
+    const evidence = extractResumeEvidence(resumeText);
+
+    expect(countUsableResumeEvidence(evidence)).toBeGreaterThanOrEqual(3);
+    expect(hasUsableResumeEvidence(evidence)).toBe(true);
   });
 });

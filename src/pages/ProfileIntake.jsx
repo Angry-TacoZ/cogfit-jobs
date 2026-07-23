@@ -1,20 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Button from '../components/Button';
 import AuthPanel from '../components/AuthPanel';
 import { profileSections, questionCount, needsAdaptiveQuestions } from '../lib/profileScoring';
 import { llmAdapter } from '../lib/llmAdapter';
 import {
   clearResumeImport,
+  clearResumeText,
   loadGeneratedProfile,
   loadProfileAnswers,
   loadResumeEvidence,
-  loadResumeText,
   saveGeneratedProfile,
   saveProfileAnswers,
-  saveResumeEvidence,
-  saveResumeText
+  saveResumeEvidence
 } from '../lib/storage';
-import { buildResumeBaselineProfile, buildResumeSeedAnswers, extractResumeEvidence } from '../lib/resumeEvidence';
+import {
+  buildResumeBaselineProfile,
+  buildResumeSeedAnswers,
+  extractResumeEvidence,
+  hasUsableResumeEvidence
+} from '../lib/resumeEvidence';
 import { sampleProfileAnswers } from '../data/sampleProfiles';
 import { saveCloudProfile } from '../lib/firebaseClient';
 
@@ -244,7 +248,7 @@ function CalibrationPanel({ answers, progress, loading, onUpdate, onSave, onShow
 export default function ProfileIntake({ go }) {
   const savedProfile = loadGeneratedProfile();
   const [answers, setAnswers] = useState(loadProfileAnswers());
-  const [resumeText, setResumeText] = useState(loadResumeText());
+  const [resumeText, setResumeText] = useState('');
   const [resumeEvidence, setResumeEvidence] = useState(loadResumeEvidence());
   const [sectionIndex, setSectionIndex] = useState(0);
   const [profile, setProfile] = useState(savedProfile);
@@ -258,6 +262,10 @@ export default function ProfileIntake({ go }) {
   const answeredCount = useMemo(() => Object.values(answers).filter((value) => String(value || '').trim()).length, [answers]);
   const progress = Math.round((answeredCount / questionCount) * 100);
 
+  useEffect(() => {
+    clearResumeText();
+  }, []);
+
   const update = (id, value) => {
     const next = { ...answers, [id]: value };
     setAnswers(next);
@@ -266,7 +274,6 @@ export default function ProfileIntake({ go }) {
 
   const updateResumeText = (value) => {
     setResumeText(value);
-    saveResumeText(value);
   };
 
   const clearResumeImportState = () => {
@@ -309,8 +316,15 @@ export default function ProfileIntake({ go }) {
     }
 
     const evidence = extractResumeEvidence(text);
+    if (!hasUsableResumeEvidence(evidence)) {
+      setError('CogFit Jobs could not extract enough concrete evidence from this resume. Try a more detailed resume or continue with the full intake.');
+      return;
+    }
+
     const seededAnswers = { ...answers, ...buildResumeSeedAnswers(evidence) };
     const baseline = buildResumeBaselineProfile(evidence);
+    setResumeText('');
+    clearResumeText();
     setResumeEvidence(evidence);
     saveResumeEvidence(evidence);
     setAnswers(seededAnswers);

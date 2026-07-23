@@ -48,17 +48,13 @@ export function saveResumeEvidence(evidence) {
   saveItem(keys.resumeEvidence, evidence);
 }
 
-export function loadResumeText() {
-  return loadItem(keys.resumeText, '');
-}
-
-export function saveResumeText(text) {
-  saveItem(keys.resumeText, String(text || ''));
+export function clearResumeText() {
+  removeItem(keys.resumeText);
 }
 
 export function clearResumeImport() {
   removeItem(keys.resumeEvidence);
-  removeItem(keys.resumeText);
+  clearResumeText();
 }
 
 export function loadEvaluations() {
