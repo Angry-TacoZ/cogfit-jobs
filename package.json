@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src \"functions/**/*.js\" vite.config.js",
+    "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" vite.config.js",
     "test": "vitest run",
-    "smoke": "node scripts/smoke-test.mjs"
+    "smoke": "node scripts/smoke-test.mjs",
+    "scan:secrets": "node scripts/scan-public-secrets.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

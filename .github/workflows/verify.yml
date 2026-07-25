@@ -1,0 +1,69 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, test, build, smoke, and scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      CI: true
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install function dependencies
+        run: npm ci --prefix functions
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Build production application
+        run: npm run build
+
+      - name: Scan browser-delivered code for exposed secrets
+        run: npm run scan:secrets
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser smoke test
+        run: npm run smoke
+
+      - name: Audit application dependencies
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Audit function dependencies
+        continue-on-error: true
+        run: npm audit --prefix functions --audit-level=high

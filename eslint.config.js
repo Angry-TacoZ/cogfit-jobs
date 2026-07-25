@@ -45,5 +45,15 @@ export default [
         crypto: 'readonly'
       }
     }
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.node
+      }
+    }
   }
 ];
