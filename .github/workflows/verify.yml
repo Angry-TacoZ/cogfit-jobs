@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -61,9 +61,11 @@ jobs:
         run: npm run smoke
 
       - name: Audit application dependencies
-        continue-on-error: true
-        run: npm audit --audit-level=high
+        run: |
+          npm audit --audit-level=high ||
+            echo "::warning::Application dependency audit reported existing findings."
 
       - name: Audit function dependencies
-        continue-on-error: true
-        run: npm audit --prefix functions --audit-level=high
+        run: |
+          npm audit --prefix functions --audit-level=high ||
+            echo "::warning::Function dependency audit reported existing findings."
