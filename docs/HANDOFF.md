@@ -13,6 +13,8 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - Frontend: React and Vite with clean CSS.
 - Backend: Firebase Authentication, App Check, callable Cloud Functions, Firestore, and Firebase Hosting.
 - Live profile generation and job evaluation use Gemini through protected server functions. The browser must never receive the Gemini key.
+- PR #5 merged into `main` as `3716e65`. GitHub Actions now runs lint, tests, production build, public secret scanning, and the Playwright smoke workflow on pull requests and pushes to `main`.
+- The post-merge `Verify` run for `3716e65` completed successfully.
 - Draft PR #1, `codex/resume-first-onboarding`, adds resume-first evidence extraction.
 - Draft PR #2, `codex/svelte-migration`, is an independent frontend migration proposal.
 - Active local work, `codex/progressive-onboarding`, is stacked on PR #1 and redesigns onboarding around an early Provisional Analysis followed by progressive completion of all 24 questions.
@@ -74,11 +76,13 @@ These results apply to the current local progressive-onboarding worktree. They a
 3. Review the final progressive diff and check for conflicts with the latest PR #1 head.
 4. Commit and push the remaining progressive-onboarding changes.
 5. Open a draft stacked PR against `codex/resume-first-onboarding`.
-6. After branch or deployment changes, update this same handoff with the new active work and verified status.
+6. Configure branch protection to require the `Lint, test, build, smoke, and scan` check after confirming the desired merge policy.
+7. After branch or deployment changes, update this same handoff with the new active work and verified status.
 
 ## Risks or blockers
 
 - The progressive branch depends on unmerged PR #1 and must target `codex/resume-first-onboarding` until that dependency changes.
 - A real signed-in local browser walkthrough has not yet been completed because it requires an authenticated Firebase session and may invoke the paid Gemini path.
 - The final canonical verifier, secret scan, and remote conflict review for progressive onboarding remain pending.
+- Dependency audits currently report advisory findings for both the application and Firebase Functions. CI reports these as warnings until they are addressed in a focused dependency-hardening PR.
 - ChatGPT Work and Codex use separate filesystems. This handoff crosses that boundary only after its branch is committed and pushed to GitHub, and Work must open the same branch.
