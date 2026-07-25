@@ -61,11 +61,7 @@ jobs:
         run: npm run smoke
 
       - name: Audit application dependencies
-        run: |
-          npm audit --audit-level=high ||
-            echo "::warning::Application dependency audit reported existing findings."
+        run: npm audit --audit-level=high
 
       - name: Audit function dependencies
-        run: |
-          npm audit --prefix functions --audit-level=high ||
-            echo "::warning::Function dependency audit reported existing findings."
+        run: npm audit --prefix functions --audit-level=high
