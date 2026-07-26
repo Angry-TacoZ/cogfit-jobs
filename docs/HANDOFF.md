@@ -1,5 +1,7 @@
 # CogFit Jobs handoff
 
+Last verified: 2026-07-25
+
 ## Goal
 
 CogFit Jobs is a public job-fit evaluator for nontraditional candidates. It compares job requirements with career evidence, cognitive and workstyle preferences, constraints, and likely day-to-day demands. The product should remain narrow, explainable, privacy-conscious, and useful without pretending to predict hiring outcomes.
@@ -15,6 +17,8 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - Live profile generation and job evaluation use Gemini through protected server functions. The browser must never receive the Gemini key.
 - PR #5 merged into `main` as `3716e65`. GitHub Actions now runs lint, tests, production build, public secret scanning, and the Playwright smoke workflow on pull requests and pushes to `main`.
 - The post-merge `Verify` run for `3716e65` completed successfully.
+- PR #6 merged dependency-security fixes into `main` as `43c12d0`. Both npm audits report zero vulnerabilities, and CI now fails on high or critical audit findings.
+- The post-merge `Verify` run for `43c12d0` completed successfully.
 - Draft PR #1, `codex/resume-first-onboarding`, adds resume-first evidence extraction.
 - Draft PR #2, `codex/svelte-migration`, is an independent frontend migration proposal.
 - Active local work, `codex/progressive-onboarding`, is stacked on PR #1 and redesigns onboarding around an early Provisional Analysis followed by progressive completion of all 24 questions.
@@ -58,6 +62,11 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 
 ## Verification
 
+### Merged dependency-security work
+
+- Root and Functions `npm audit` report zero vulnerabilities.
+- Post-merge GitHub Actions Verify run `30180903783` passed for `43c12d0`, including both enforced audit steps.
+
 ### Active progressive-onboarding work
 
 - `npm.cmd run lint` passed.
@@ -84,5 +93,4 @@ These results apply to the current local progressive-onboarding worktree. They a
 - The progressive branch depends on unmerged PR #1 and must target `codex/resume-first-onboarding` until that dependency changes.
 - A real signed-in local browser walkthrough has not yet been completed because it requires an authenticated Firebase session and may invoke the paid Gemini path.
 - The final canonical verifier, secret scan, and remote conflict review for progressive onboarding remain pending.
-- Dependency audits currently report advisory findings for both the application and Firebase Functions. CI reports these as warnings until they are addressed in a focused dependency-hardening PR.
 - ChatGPT Work and Codex use separate filesystems. This handoff crosses that boundary only after its branch is committed and pushed to GitHub, and Work must open the same branch.

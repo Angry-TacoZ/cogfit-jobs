@@ -2,6 +2,8 @@
 
 You are working on CogFit Jobs, a narrow MVP for profile-based job-ad evaluation for nontraditional candidates.
 
+Before planning repository-wide work, read `docs/HANDOFF.md` for the current project state. Update it when durable decisions, active branches, or verified status materially change.
+
 Rules:
 - Never expose API keys in frontend code.
 - Never commit secrets.
