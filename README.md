@@ -4,6 +4,10 @@ CogFit Jobs is a public-facing React and Vite prototype for profile-based job-fi
 
 Live profile generation and job evaluation run through Firebase callable Cloud Functions. The browser never receives the Gemini API key. Profile answers, generated profiles, evaluations, and feedback are cached in `localStorage` and saved to Firestore under the signed-in user's account.
 
+## Project status
+
+See [`docs/HANDOFF.md`](docs/HANDOFF.md) for the current repository state, durable decisions, active branches, verification, and known blockers.
+
 ## Local setup
 
 ```powershell

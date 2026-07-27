@@ -1,18 +1,27 @@
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const port = process.env.SMOKE_PORT || String(43_000 + Math.floor(Math.random() * 1_000));
 const baseUrl = `http://127.0.0.1:${port}`;
 const serverOutput = [];
+const viteEntryPoint = fileURLToPath(
+  new URL('../node_modules/vite/bin/vite.js', import.meta.url)
+);
 
-const command = process.platform === 'win32' ? 'cmd.exe' : npmCommand;
-const commandArgs = process.platform === 'win32'
-  ? ['/d', '/s', '/c', npmCommand, 'run', 'preview', '--', '--host', '127.0.0.1', '--port', port, '--strictPort']
-  : ['run', 'preview', '--', '--host', '127.0.0.1', '--port', port, '--strictPort'];
+const commandArgs = [
+  viteEntryPoint,
+  'preview',
+  '--host',
+  '127.0.0.1',
+  '--port',
+  port,
+  '--strictPort'
+];
 
 let serverExited = false;
-const server = spawn(command, commandArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+const server = spawn(process.execPath, commandArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
 
 server.stdout.on('data', (chunk) => serverOutput.push(chunk.toString()));
 server.stderr.on('data', (chunk) => serverOutput.push(chunk.toString()));
@@ -20,13 +29,29 @@ server.on('exit', () => {
   serverExited = true;
 });
 
-function stopServer() {
+async function stopServer() {
   if (!server.pid || serverExited) return;
+
   if (process.platform === 'win32') {
-    spawn('taskkill', ['/pid', String(server.pid), '/t', '/f'], { stdio: 'ignore' });
+    const taskkill = spawn(
+      'taskkill',
+      ['/pid', String(server.pid), '/t', '/f'],
+      { stdio: 'ignore' }
+    );
+    await once(taskkill, 'exit');
     return;
   }
-  server.kill();
+
+  server.kill('SIGTERM');
+  const exited = await Promise.race([
+    once(server, 'exit').then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 5_000))
+  ]);
+
+  if (!exited && !serverExited) {
+    server.kill('SIGKILL');
+    await once(server, 'exit');
+  }
 }
 
 async function waitForServer() {
@@ -92,14 +117,19 @@ async function runSmokeTest() {
   }
 }
 
-runSmokeTest()
-  .then(() => {
+async function main() {
+  try {
+    await runSmokeTest();
     console.log('Smoke test passed');
-  })
-  .finally(() => {
-    stopServer();
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error(error);
     process.exitCode = 1;
-  });
+  } finally {
+    await stopServer();
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
