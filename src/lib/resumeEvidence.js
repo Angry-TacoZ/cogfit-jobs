@@ -55,6 +55,8 @@ const titlePatterns = [
   /\bPC Technician\b/gi
 ];
 
+export const MAX_RESUME_FILE_BYTES = 5 * 1024 * 1024;
+
 const unique = (items, limit = 12) => {
   const seen = new Set();
   const values = [];
@@ -78,14 +80,34 @@ function matchingLabels(text, aliases, limit) {
   );
 }
 
+function redactResumePii(text) {
+  return String(text || '')
+    .replace(/(?:https?:\/\/|www\.)[^\s)>\]}]+/gi, '[redacted URL]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
+    .replace(/(?:\+?1[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]?\d{4}(?:\s*(?:x|ext\.?)\s*\d+)?/g, '[redacted phone]')
+    .replace(
+      /\b\d{1,6}\s+(?:[A-Z0-9.'-]+\s+){0,5}(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|court|ct|circle|cir|way|highway|hwy|parkway|pkwy|terrace|ter|place|pl)\b\.?/gi,
+      '[redacted address]'
+    );
+}
+
 function sentenceMatches(text, patterns, limit = 8) {
-  const sentences = String(text || '')
+  const sentences = redactResumePii(text)
     .replace(/\r/g, '\n')
     .split(/\n|(?<=[.!?])\s+/)
     .map((line) => line.replace(/^[•\-*]\s*/, '').trim())
     .filter((line) => line.length > 28 && line.length < 280);
 
   return unique(sentences.filter((line) => patterns.some((pattern) => pattern.test(line))), limit);
+}
+
+export function assertResumeFileSize(file) {
+  if (!file || !Number.isFinite(file.size)) {
+    throw new Error('The selected resume file does not include a valid size.');
+  }
+  if (file.size > MAX_RESUME_FILE_BYTES) {
+    throw new Error('Resume files must be 5 MB or smaller.');
+  }
 }
 
 export function extractResumeEvidence(resumeText) {

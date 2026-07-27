@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertResumeFileSize,
   buildResumeBaselineProfile,
   buildResumeSeedAnswers,
   countUsableResumeEvidence,
@@ -65,5 +66,27 @@ describe('resume evidence extraction', () => {
 
     expect(countUsableResumeEvidence(evidence)).toBeGreaterThanOrEqual(3);
     expect(hasUsableResumeEvidence(evidence)).toBe(true);
+  });
+
+  it('redacts contact details from retained resume sentences', () => {
+    const evidence = extractResumeEvidence(`
+      Built a SQL dashboard at https://portfolio.example.com and automated reporting workflows; contact james@example.com or (717) 555-0199 at 123 Market Street for project details.
+    `);
+    const retainedText = [...evidence.projects, ...evidence.systemsEvidence].join(' ');
+
+    expect(retainedText).toContain('[redacted URL]');
+    expect(retainedText).toContain('[redacted email]');
+    expect(retainedText).toContain('[redacted phone]');
+    expect(retainedText).toContain('[redacted address]');
+    expect(retainedText).not.toContain('portfolio.example.com');
+    expect(retainedText).not.toContain('james@example.com');
+    expect(retainedText).not.toContain('717');
+    expect(retainedText).not.toContain('123 Market Street');
+  });
+
+  it('rejects resume files larger than 5 MB before reading them', () => {
+    expect(() => assertResumeFileSize({ size: 5 * 1024 * 1024 })).not.toThrow();
+    expect(() => assertResumeFileSize({ size: 5 * 1024 * 1024 + 1 }))
+      .toThrow('Resume files must be 5 MB or smaller.');
   });
 });

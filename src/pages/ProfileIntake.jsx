@@ -14,6 +14,7 @@ import {
   saveResumeEvidence
 } from '../lib/storage';
 import {
+  assertResumeFileSize,
   buildResumeBaselineProfile,
   buildResumeSeedAnswers,
   extractResumeEvidence,
@@ -289,6 +290,7 @@ export default function ProfileIntake({ go }) {
     setNotice('');
     setLoading(true);
     try {
+      assertResumeFileSize(file);
       if (file.name.toLowerCase().endsWith('.docx')) {
         const mammoth = await import('mammoth/mammoth.browser');
         const arrayBuffer = await file.arrayBuffer();
