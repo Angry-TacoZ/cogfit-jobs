@@ -3,10 +3,10 @@ import { generateAdaptiveQuestions } from './evaluator';
 import { callEvaluateJob, callGenerateProfile } from './firebaseClient';
 
 export const llmAdapter = {
-  async generateProfileSummary(profileAnswers) {
+  async generateProfileSummary(profileAnswers, resumeEvidence = null) {
     const draftProfile = generateWorkFitProfile(profileAnswers);
     try {
-      const finalProfile = await callGenerateProfile(profileAnswers, draftProfile);
+      const finalProfile = await callGenerateProfile(profileAnswers, draftProfile, resumeEvidence);
       return {
         ...finalProfile,
         profile_generation_mode: 'live_gemini',
@@ -20,8 +20,8 @@ export const llmAdapter = {
       };
     }
   },
-  async evaluateJob(profile, jobAd) {
-    return callEvaluateJob(profile, jobAd);
+  async evaluateJob(evidence, jobAd) {
+    return callEvaluateJob(evidence, jobAd);
   },
   async generateAdaptiveQuestions(profile, jobAd, currentConfidence) {
     return generateAdaptiveQuestions(profile, jobAd, currentConfidence);

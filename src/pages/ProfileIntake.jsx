@@ -145,7 +145,7 @@ function ProfileWeights({ profile }) {
   );
 }
 
-function ProfileReview({ profile, evidence, onEdit, onEvaluate }) {
+function ProfileReview({ profile, evidence, onEdit, onEvaluate, onImportResume }) {
   return (
     <>
       <ResumeEvidenceSummary evidence={evidence} />
@@ -169,6 +169,9 @@ function ProfileReview({ profile, evidence, onEdit, onEvaluate }) {
       <div className="split-actions profile-actions">
         <Button onClick={onEvaluate}>Evaluate a job ad</Button>
         <Button variant="secondary" onClick={onEdit}>Improve matching</Button>
+        <Button variant="secondary" onClick={onImportResume}>
+          {evidence ? 'Replace resume evidence' : 'Add resume evidence'}
+        </Button>
       </div>
     </>
   );
@@ -323,7 +326,10 @@ export default function ProfileIntake({ go }) {
       return;
     }
 
-    const seededAnswers = { ...answers, ...buildResumeSeedAnswers(evidence) };
+    const existingAnswers = Object.fromEntries(
+      Object.entries(answers).filter(([, value]) => String(value || '').trim())
+    );
+    const seededAnswers = { ...buildResumeSeedAnswers(evidence), ...existingAnswers };
     const baseline = buildResumeBaselineProfile(evidence);
     setResumeText('');
     clearResumeText();
@@ -331,12 +337,16 @@ export default function ProfileIntake({ go }) {
     saveResumeEvidence(evidence);
     setAnswers(seededAnswers);
     saveProfileAnswers(seededAnswers);
-    setProfile(baseline);
-    saveGeneratedProfile(baseline);
-    setEditing(false);
+    if (!profile) {
+      setProfile(baseline);
+      saveGeneratedProfile(baseline);
+    }
+    setEditing(true);
     setIntakeMode('calibration');
     setAdaptive([]);
-    setNotice('Baseline profile created from resume evidence. Answer calibration questions to improve workstyle precision.');
+    setNotice(profile
+      ? 'Resume evidence replaced. Review the calibration answers, then update your profile.'
+      : 'Baseline profile created from resume evidence. Answer calibration questions to improve workstyle precision.');
   };
 
   const saveProfile = async () => {
@@ -344,10 +354,7 @@ export default function ProfileIntake({ go }) {
     setNotice('');
     setLoading(true);
     try {
-      if (intakeMode === 'questions') {
-        clearResumeImportState();
-      }
-      const generated = await llmAdapter.generateProfileSummary(answers);
+      const generated = await llmAdapter.generateProfileSummary(answers, resumeEvidence);
       saveGeneratedProfile(generated);
       setProfile(generated);
       setEditing(false);
@@ -358,7 +365,7 @@ export default function ProfileIntake({ go }) {
       }
 
       try {
-        const savedCloudProfile = await saveCloudProfile(generated, answers);
+        const savedCloudProfile = await saveCloudProfile(generated, answers, resumeEvidence);
         saveGeneratedProfile(savedCloudProfile);
         setProfile(savedCloudProfile);
       } catch (cloudSaveError) {
@@ -398,7 +405,13 @@ export default function ProfileIntake({ go }) {
       {notice && <div className="success">{notice}</div>}
       {error && <div className="error">{error}</div>}
       {!editing && profile ? (
-        <ProfileReview profile={profile} evidence={resumeEvidence} onEdit={() => { setEditing(true); setIntakeMode('calibration'); }} onEvaluate={() => go('evaluator')} />
+        <ProfileReview
+          profile={profile}
+          evidence={resumeEvidence}
+          onEdit={() => { setEditing(true); setIntakeMode('calibration'); }}
+          onEvaluate={() => go('evaluator')}
+          onImportResume={() => { setEditing(true); setIntakeMode('resume'); }}
+        />
       ) : intakeMode === 'resume' ? (
         <ResumeImportPanel
           resumeText={resumeText}

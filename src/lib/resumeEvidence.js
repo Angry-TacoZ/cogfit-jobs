@@ -86,7 +86,7 @@ function redactResumePii(text) {
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
     .replace(/(?:\+?1[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]?\d{4}(?:\s*(?:x|ext\.?)\s*\d+)?/g, '[redacted phone]')
     .replace(
-      /\b\d{1,6}\s+(?:[A-Z0-9.'-]+\s+){0,5}(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|court|ct|circle|cir|way|highway|hwy|parkway|pkwy|terrace|ter|place|pl)\b\.?/gi,
+      /\b\d{1,6}\s+(?:[A-Z0-9.'-]+\s+){0,5}(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|court|ct|circle|cir|way|highway|hwy|parkway|pkwy|terrace|ter|place|pl)\b\.?(?:,\s*[A-Z][A-Z.'-]*(?:\s+[A-Z][A-Z.'-]*){0,2},?\s+[A-Z]{2}\s+\d{5}(?:-\d{4})?)?/gi,
       '[redacted address]'
     );
 }
@@ -152,12 +152,24 @@ export function extractResumeEvidence(resumeText) {
 }
 
 export function countUsableResumeEvidence(evidence) {
-  return ['tools', 'evidence', 'domains', 'projects', 'systemsEvidence']
+  return ['tools', 'evidence', 'domains', 'titles', 'projects', 'systemsEvidence']
     .reduce((count, key) => count + (Array.isArray(evidence?.[key]) ? evidence[key].length : 0), 0);
 }
 
-export function hasUsableResumeEvidence(evidence, minimumSignals = 3) {
-  return countUsableResumeEvidence(evidence) >= minimumSignals;
+export function hasUsableResumeEvidence(evidence) {
+  const anchors = unique([
+    ...(evidence?.tools || []),
+    ...(evidence?.domains || []),
+    ...(evidence?.titles || [])
+  ]).length;
+  const narrativeStatements = unique([
+    ...(evidence?.projects || []),
+    ...(evidence?.systemsEvidence || [])
+  ]).length;
+
+  return anchors >= 3
+    || (anchors >= 2 && narrativeStatements >= 1)
+    || (anchors >= 1 && narrativeStatements >= 2);
 }
 
 export function buildResumeSeedAnswers(evidence) {

@@ -109,6 +109,48 @@ async function runSmokeTest() {
     await page.goto(`${baseUrl}/#/methodology`, { waitUntil: 'networkidle' });
     await assertVisibleText(page, 'h1', 'Methodology');
 
+    await page.evaluate(() => {
+      localStorage.setItem('cogfit.generatedProfile', JSON.stringify({
+        target_role_families: ['AI enablement'],
+        strongest_evidence: ['Workflow automation'],
+        tools_and_skills: ['SQL'],
+        energizers: ['Building systems'],
+        drainers: ['Repetitive queues'],
+        preferred_problem_structure: 'Ambiguous problems with ownership.',
+        communication_preferences: ['Writing'],
+        interaction_limits: 'Low live-call load.',
+        autonomy_needs: 'Independent ownership.',
+        negative_fit_patterns: ['Quota pressure'],
+        hidden_costs: ['Context switching'],
+        misunderstood_resume_signals: ['Nontraditional titles'],
+        systems_thinking_score: {
+          root_cause_depth: 4,
+          system_mapping: 4,
+          pattern_recognition: 4,
+          failure_mode_awareness: 4,
+          improvement_drive: 4,
+          abstraction_ability: 4
+        },
+        confidence_score: 80,
+        missing_information: []
+      }));
+      localStorage.setItem('cogfit.resumeEvidence', JSON.stringify({
+        sourceType: 'resume',
+        characterCount: 900,
+        confidence: 80,
+        tools: ['SQL'],
+        evidence: ['automation'],
+        domains: [],
+        titles: [],
+        projects: ['Built a workflow automation.'],
+        systemsEvidence: []
+      }));
+    });
+    await page.goto(`${baseUrl}/#/profile`, { waitUntil: 'networkidle' });
+    await assertVisibleText(page, 'h1', 'Your work-fit profile');
+    await page.getByRole('button', { name: /Replace resume evidence/i }).click();
+    await assertVisibleText(page, 'h1', 'Create your profile from a resume');
+
     if (browserErrors.length > 0) {
       throw new Error(`Browser errors detected:\n${browserErrors.join('\n')}`);
     }

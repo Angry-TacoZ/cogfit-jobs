@@ -9,6 +9,7 @@ const MAX_DESCRIPTION_CHARS = 12000;
 const MAX_PROFILE_CHARS = 16000;
 const MAX_NOTES_CHARS = 1000;
 const MAX_PROFILE_ANSWERS_CHARS = 18000;
+const MAX_EVALUATION_EVIDENCE_CHARS = 48000;
 const MAX_ID_CHARS = 128;
 const feedbackValues = new Set([
   'accurate',
@@ -189,6 +190,15 @@ const scoreFields = [
   'confidence'
 ];
 
+const resumeEvidenceArrayFields = {
+  tools: 24,
+  evidence: 16,
+  domains: 12,
+  titles: 8,
+  projects: 10,
+  systemsEvidence: 10
+};
+
 function fail(message) {
   throw new PayloadValidationError(message);
 }
@@ -337,6 +347,54 @@ function normalizeProfileAnswers(answers) {
   return normalized;
 }
 
+function normalizeResumeEvidence(evidence) {
+  if (evidence === undefined || evidence === null) {
+    return null;
+  }
+
+  const source = requirePlainObject(evidence, 'Resume evidence');
+  rejectUnknownKeys(source, new Set([
+    'importedAt',
+    'sourceType',
+    'characterCount',
+    'confidence',
+    ...Object.keys(resumeEvidenceArrayFields)
+  ]), 'Resume evidence');
+
+  const normalized = {
+    sourceType: safeText(source.sourceType, 40, 'Resume evidence source type', { required: true }),
+    characterCount: safeScore(source.characterCount, 'Resume character count', 50000),
+    confidence: safeScore(source.confidence, 'Resume evidence confidence')
+  };
+  if (normalized.sourceType !== 'resume') {
+    fail('Resume evidence source type must be resume.');
+  }
+  if (source.importedAt !== undefined) {
+    normalized.importedAt = safeText(source.importedAt, 40, 'Resume imported at', { required: true });
+  }
+  for (const [field, maxItems] of Object.entries(resumeEvidenceArrayFields)) {
+    normalized[field] = safeStringArray(source[field] || [], maxItems, `resumeEvidence.${field}`, 800);
+  }
+  return normalized;
+}
+
+function normalizeEvaluationEvidence(evidence) {
+  const source = requirePlainObject(evidence, 'Evaluation evidence');
+  assertPayloadSize(source, MAX_EVALUATION_EVIDENCE_CHARS, 'Evaluation evidence');
+  rejectUnknownKeys(source, new Set(['resumeEvidence', 'questionnaireEvidence']), 'Evaluation evidence');
+
+  const questionnaire = requirePlainObject(source.questionnaireEvidence, 'Questionnaire evidence');
+  rejectUnknownKeys(questionnaire, new Set(['answers', 'profile']), 'Questionnaire evidence');
+
+  return {
+    resumeEvidence: normalizeResumeEvidence(source.resumeEvidence),
+    questionnaireEvidence: {
+      answers: normalizeProfileAnswers(questionnaire.answers || {}),
+      profile: normalizeWorkFitProfile(questionnaire.profile)
+    }
+  };
+}
+
 function normalizeJobAd(jobAd, { requireMinimumDescription = false } = {}) {
   const source = requirePlainObject(jobAd, 'Job ad');
   rejectUnknownKeys(source, new Set(['title', 'company', 'description', 'notes']), 'Job ad');
@@ -431,11 +489,14 @@ module.exports = {
   MAX_PROFILE_CHARS,
   MAX_NOTES_CHARS,
   MAX_PROFILE_ANSWERS_CHARS,
+  MAX_EVALUATION_EVIDENCE_CHARS,
   reportSchema,
   workFitProfileSchema,
   normalizeEvaluation,
   normalizeFeedbackPayload,
   normalizeJobAd,
+  normalizeEvaluationEvidence,
   normalizeProfileAnswers,
+  normalizeResumeEvidence,
   normalizeWorkFitProfile
 };

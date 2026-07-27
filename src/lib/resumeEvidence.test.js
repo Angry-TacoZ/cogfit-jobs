@@ -61,6 +61,14 @@ describe('resume evidence extraction', () => {
     expect(hasUsableResumeEvidence(evidence)).toBe(false);
   });
 
+  it('rejects one weak phrase even when aliases overlap', () => {
+    const weakText = 'Built a dashboard for the team with strong communication and dependable results. '.repeat(7);
+    const evidence = extractResumeEvidence(weakText);
+
+    expect(countUsableResumeEvidence(evidence)).toBeGreaterThanOrEqual(3);
+    expect(hasUsableResumeEvidence(evidence)).toBe(false);
+  });
+
   it('accepts a resume after extracting multiple usable evidence signals', () => {
     const evidence = extractResumeEvidence(resumeText);
 
@@ -70,7 +78,7 @@ describe('resume evidence extraction', () => {
 
   it('redacts contact details from retained resume sentences', () => {
     const evidence = extractResumeEvidence(`
-      Built a SQL dashboard at https://portfolio.example.com and automated reporting workflows; contact james@example.com or (717) 555-0199 at 123 Market Street for project details.
+      Built a SQL dashboard at https://portfolio.example.com and automated reporting workflows; contact james@example.com or (717) 555-0199 at 123 Market Street, Carlisle, PA 17013 for project details.
     `);
     const retainedText = [...evidence.projects, ...evidence.systemsEvidence].join(' ');
 
@@ -82,6 +90,8 @@ describe('resume evidence extraction', () => {
     expect(retainedText).not.toContain('james@example.com');
     expect(retainedText).not.toContain('717');
     expect(retainedText).not.toContain('123 Market Street');
+    expect(retainedText).not.toContain('Carlisle');
+    expect(retainedText).not.toContain('17013');
   });
 
   it('rejects resume files larger than 5 MB before reading them', () => {
