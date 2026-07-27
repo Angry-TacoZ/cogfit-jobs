@@ -1,6 +1,6 @@
 # CogFit Jobs handoff
 
-Last verified: 2026-07-25
+Last verified: 2026-07-27
 
 ## Goal
 
@@ -19,7 +19,7 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - The post-merge `Verify` run for `3716e65` completed successfully.
 - PR #6 merged dependency-security fixes into `main` as `43c12d0`. Both npm audits report zero vulnerabilities, and CI now fails on high or critical audit findings.
 - The post-merge `Verify` run for `43c12d0` completed successfully.
-- Draft PR #1, `codex/resume-first-onboarding`, adds resume-first evidence extraction.
+- Draft PR #1, `codex/resume-first-onboarding`, adds resume-first evidence extraction. Its current branch includes PII redaction for retained evidence, a 5 MB upload limit, and the latest `main` verification baseline.
 - Draft PR #2, `codex/svelte-migration`, is an independent frontend migration proposal.
 - Active local work, `codex/progressive-onboarding`, is stacked on PR #1 and redesigns onboarding around an early Provisional Analysis followed by progressive completion of all 24 questions.
 - PR #1, PR #2, and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
@@ -61,6 +61,12 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - Review artifacts: `docs/screenshots/progressive-onboarding-desktop.png`, `docs/screenshots/progressive-onboarding-mobile.png`
 
 ## Verification
+
+### Resume-first PR #1
+
+- Canonical verifier passed: lint, 6 test files with 19 tests, and production build.
+- Browser smoke test, public secret scan, predeploy secret scan, and root and Functions audits passed.
+- Regression coverage verifies that retained project evidence redacts email, phone, street address, and URL values and rejects files larger than 5 MB.
 
 ### Merged dependency-security work
 
