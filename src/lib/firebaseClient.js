@@ -134,46 +134,46 @@ export async function signOutCurrentUser() {
   return signOut(await getFirebaseAuth());
 }
 
-export async function callEvaluateJob(profile, jobAd) {
+export async function callEvaluateJob(evidence, jobAd) {
   return runProtectedCall(async () => {
     await startAppCheck();
     await requireCurrentUser('running live analysis');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
     const evaluateJob = httpsCallable(functions, 'evaluateJob');
-    const response = await evaluateJob({ profile, jobAd });
+    const response = await evaluateJob({ evidence, jobAd });
     return response.data;
   });
 }
 
-export async function callGenerateProfile(answers, draftProfile) {
+export async function callGenerateProfile(answers, draftProfile, resumeEvidence = null) {
   return runProtectedCall(async () => {
     await startAppCheck();
     await requireCurrentUser('generating the final work-fit profile');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
     const generateProfile = httpsCallable(functions, 'generateProfile');
-    const response = await generateProfile({ answers, draftProfile });
+    const response = await generateProfile({ answers, draftProfile, resumeEvidence });
     return response.data;
   });
 }
 
-export async function saveCloudProfile(profile, answers = {}) {
+export async function saveCloudProfile(profile, answers = {}, resumeEvidence = null) {
   return runProtectedCall(async () => {
     await startAppCheck();
     await requireCurrentUser('saving your profile');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
     const saveProfile = httpsCallable(functions, 'saveProfile');
-    const response = await saveProfile({ profile, answers });
+    const response = await saveProfile({ profile, answers, resumeEvidence });
     return response.data;
   });
 }
 
-export async function saveCloudEvaluation(profile, evaluation, jobAd) {
+export async function saveCloudEvaluation(evidence, evaluation, jobAd) {
   return runProtectedCall(async () => {
     await startAppCheck();
     await requireCurrentUser('saving the job evaluation');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
     const saveEvaluation = httpsCallable(functions, 'saveEvaluation');
-    const response = await saveEvaluation({ profile, evaluation, jobAd });
+    const response = await saveEvaluation({ evidence, evaluation, jobAd });
     return response.data;
   });
 }

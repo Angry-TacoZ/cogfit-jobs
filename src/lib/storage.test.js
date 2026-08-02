@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { mergeEvaluations } from './storage';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearResumeText, mergeEvaluations } from './storage';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('mergeEvaluations', () => {
   it('deduplicates saved reports and keeps the newest evaluations first', () => {
@@ -21,5 +25,14 @@ describe('mergeEvaluations', () => {
     };
 
     expect(mergeEvaluations([older, newer], [duplicateNewer])).toEqual([newer, older]);
+  });
+
+  it('removes legacy raw resume text from browser storage', () => {
+    const removeItem = vi.fn();
+    vi.stubGlobal('localStorage', { removeItem });
+
+    clearResumeText();
+
+    expect(removeItem).toHaveBeenCalledWith('cogfit.resumeText');
   });
 });

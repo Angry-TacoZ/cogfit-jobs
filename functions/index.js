@@ -7,9 +7,11 @@ const {
   PayloadValidationError,
   workFitProfileSchema,
   normalizeEvaluation,
+  normalizeEvaluationEvidence,
   normalizeFeedbackPayload,
   normalizeJobAd,
   normalizeProfileAnswers,
+  normalizeResumeEvidence,
   normalizeWorkFitProfile
 } = require('./payloadValidation');
 
@@ -37,9 +39,23 @@ function withPayloadValidation(callback) {
   }
 }
 
+function normalizeRequestEvidence(data) {
+  if (data?.evidence) {
+    return normalizeEvaluationEvidence(data.evidence);
+  }
+
+  return normalizeEvaluationEvidence({
+    resumeEvidence: data?.resumeEvidence || null,
+    questionnaireEvidence: {
+      profile: data?.profile,
+      answers: data?.answers || {}
+    }
+  });
+}
+
 function validateRequest(data) {
   return withPayloadValidation(() => ({
-    profile: normalizeWorkFitProfile(data?.profile),
+    evidence: normalizeRequestEvidence(data),
     jobAd: normalizeJobAd(data?.jobAd, { requireMinimumDescription: true })
   }));
 }
@@ -47,7 +63,8 @@ function validateRequest(data) {
 function validateProfileRequest(data) {
   const payload = withPayloadValidation(() => ({
     answers: normalizeProfileAnswers(data?.answers),
-    draftProfile: normalizeWorkFitProfile(data?.draftProfile)
+    draftProfile: normalizeWorkFitProfile(data?.draftProfile),
+    resumeEvidence: normalizeResumeEvidence(data?.resumeEvidence)
   }));
   const answeredCount = Object.values(payload.answers).filter((value) => String(value || '').trim().length > 0).length;
   if (answeredCount < 12) {
@@ -119,14 +136,17 @@ async function enforceDailyQuota(uid, authToken) {
   });
 }
 
-function buildPrompt(profile, jobAd) {
+function buildPrompt(evidence, jobAd) {
   return [
     'You are CogFit Jobs, a direct job-fit evaluator for nontraditional candidates.',
     'Do not act like a generic career coach. Do not flatter. Do not fake certainty.',
-    'Base the report only on the supplied work-fit profile and job ad.',
+    'Base the report only on the supplied resume evidence, questionnaire evidence, and job ad.',
     'State uncertainty and missing evidence explicitly.',
-    'Do not say a skill, tool, or evidence item is absent, missing, or not highlighted if it appears anywhere in the work-fit profile JSON.',
-    'If a tool appears in the profile but the role needs deeper, more specific, or domain-specific proof, say exactly that instead.',
+    'Use resume evidence for qualifications, skills evidence, ATS alignment, title alignment, and callback likelihood.',
+    'Use questionnaire evidence for cognitive fit, sustainable workstyle, autonomy, interaction preferences, communication mode, and environmental fit.',
+    'Do not infer workstyle preferences from resume evidence.',
+    'Do not say a skill, tool, title, or evidence item is absent if it appears in the resume evidence JSON.',
+    'If an item appears in resume evidence but the role needs deeper, more specific, or domain-specific proof, say exactly that instead.',
     'Treat Power BI, BI dashboards, reporting dashboards, and SQL dashboards as dashboarding or BI evidence when judging skills match.',
     'Separate tool presence from evidence depth. Example: Power BI may be present, while executive-ready financial reporting proof may still be thin.',
     'Score callback likelihood separately from actual ability and sustainability.',
@@ -139,15 +159,17 @@ function buildPrompt(profile, jobAd) {
     '- Cognitive Fit Score considers autonomy, ambiguity type, complexity, repetition, customer/contact load, communication mode, building versus operating versus selling balance, travel, and schedule demands.',
     '- Culture / Workstyle Risk considers micromanagement, quota pressure, call-center work, heavy live meetings, political friction, vague fast-paced chaos, travel, unclear ownership, and innovation theater.',
     '',
-    `Work-fit profile JSON:\n${JSON.stringify(profile, null, 2)}`,
+    `Resume evidence JSON:\n${JSON.stringify(evidence.resumeEvidence, null, 2)}`,
+    '',
+    `Questionnaire evidence JSON:\n${JSON.stringify(evidence.questionnaireEvidence, null, 2)}`,
     '',
     `Job ad JSON:\n${JSON.stringify(jobAd, null, 2)}`
   ].join('\n');
 }
 
-function buildReportPrompt(profile, jobAd) {
+function buildReportPrompt(evidence, jobAd) {
   return [
-    buildPrompt(profile, jobAd),
+    buildPrompt(evidence, jobAd),
     '',
     'Return exactly one valid JSON object. Do not use Markdown. Do not include comments.',
     'Keep prose concise. Each string field should be one or two practical sentences.',
@@ -209,10 +231,12 @@ function preserveDraftEvidence(profile, draftProfile) {
   };
 }
 
-function buildProfilePrompt(answers, draftProfile) {
+function buildProfilePrompt(answers, draftProfile, resumeEvidence) {
   return [
     'You are CogFit Jobs, creating a final Work-Fit Profile for a nontraditional candidate.',
     'Use the supplied questionnaire answers as the primary evidence.',
+    'Use structured resume evidence for qualifications, named tools, titles, domains, and project facts.',
+    'Do not infer cognitive or workstyle preferences from resume evidence.',
     'Use the JavaScript first-pass profile only as a rough draft, not as ground truth.',
     'Preserve explicitly named tools, platforms, project artifacts, and dashboard evidence from the answers unless they are clearly irrelevant duplicates.',
     'Do not drop named evidence such as SQL, Power BI, BI dashboards, APIs, programming languages, deployed apps, or portfolio artifacts.',
@@ -223,6 +247,8 @@ function buildProfilePrompt(answers, draftProfile) {
     'Avoid em dashes in all prose.',
     '',
     'Final profile fields must be concise, evidence-based, and useful for later job-ad evaluation.',
+    '',
+    `Structured resume evidence JSON:\n${JSON.stringify(resumeEvidence, null, 2)}`,
     '',
     `Questionnaire answers JSON:\n${JSON.stringify(answers, null, 2)}`,
     '',
@@ -539,9 +565,9 @@ exports.generateProfile = onCall(
   },
   async (request) => {
     await requireProtectedUser(request, 'live profile generation', { consumeQuota: true });
-    const { answers, draftProfile } = validateProfileRequest(request.data);
+    const { answers, draftProfile, resumeEvidence } = validateProfileRequest(request.data);
     const generatedProfile = await generateStructuredGemini(
-      buildProfilePrompt(answers, draftProfile),
+      buildProfilePrompt(answers, draftProfile, resumeEvidence),
       workFitProfileSchema,
       3200,
       'structured profile'
@@ -561,9 +587,10 @@ exports.saveProfile = onCall(
   },
   async (request) => {
     await requireProtectedUser(request, 'profile storage');
-    const { profile, answers } = withPayloadValidation(() => ({
+    const { profile, answers, resumeEvidence } = withPayloadValidation(() => ({
       profile: normalizeWorkFitProfile(request.data?.profile),
-      answers: normalizeProfileAnswers(request.data?.answers || {})
+      answers: normalizeProfileAnswers(request.data?.answers || {}),
+      resumeEvidence: normalizeResumeEvidence(request.data?.resumeEvidence)
     }));
 
     const profileId = profile.profile_id || crypto.randomUUID();
@@ -571,6 +598,7 @@ exports.saveProfile = onCall(
     await db.doc(`users/${request.auth.uid}/profiles/${profileId}`).set({
       profile: profileWithId,
       answers: answers || {},
+      resumeEvidence,
       updatedAt: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp()
     }, { merge: true });
@@ -589,18 +617,21 @@ exports.saveEvaluation = onCall(
   },
   async (request) => {
     await requireProtectedUser(request, 'job evaluation storage');
-    const { profile, evaluation, jobAd } = withPayloadValidation(() => ({
-      profile: normalizeWorkFitProfile(request.data?.profile),
+    const { evidence, evaluation, jobAd } = withPayloadValidation(() => ({
+      evidence: normalizeRequestEvidence(request.data),
       evaluation: normalizeEvaluation(request.data?.evaluation),
       jobAd: normalizeJobAd(request.data?.jobAd, { requireMinimumDescription: true })
     }));
 
+    const profile = evidence.questionnaireEvidence.profile;
     const profileId = profile.profile_id || 'default-profile';
     const evaluationId = evaluation.id || crypto.randomUUID();
     const evaluationWithId = { ...evaluation, id: evaluationId, profile_id: profileId };
     const profileRef = db.doc(`users/${request.auth.uid}/profiles/${profileId}`);
     await profileRef.set({
       profile: { ...profile, profile_id: profileId },
+      answers: evidence.questionnaireEvidence.answers,
+      resumeEvidence: evidence.resumeEvidence,
       updatedAt: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp()
     }, { merge: true });
@@ -734,8 +765,8 @@ exports.evaluateJob = onCall(
   async (request) => {
     return runCallableAction('Live evaluation', async () => {
       await requireProtectedUser(request, 'live evaluation', { consumeQuota: true });
-      const { profile, jobAd } = validateRequest(request.data);
-      const report = await generatePlainGeminiJson(buildReportPrompt(profile, jobAd), 2600, 'structured report');
+      const { evidence, jobAd } = validateRequest(request.data);
+      const report = await generatePlainGeminiJson(buildReportPrompt(evidence, jobAd), 2600, 'structured report');
 
       return withPayloadValidation(() => normalizeEvaluation({
         id: crypto.randomUUID(),

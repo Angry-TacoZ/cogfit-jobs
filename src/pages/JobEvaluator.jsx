@@ -4,7 +4,12 @@ import AuthPanel from '../components/AuthPanel';
 import { sampleJobs } from '../data/sampleJobs';
 import { sampleEvaluations } from '../data/sampleEvaluations';
 import { llmAdapter } from '../lib/llmAdapter';
-import { loadGeneratedProfile, saveEvaluation } from '../lib/storage';
+import {
+  loadGeneratedProfile,
+  loadProfileAnswers,
+  loadResumeEvidence,
+  saveEvaluation
+} from '../lib/storage';
 import { saveCloudEvaluation } from '../lib/firebaseClient';
 
 const emptyJob = { title: '', company: '', description: '', notes: '' };
@@ -57,6 +62,8 @@ export default function JobEvaluator({ go }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const profile = loadGeneratedProfile();
+  const answers = loadProfileAnswers();
+  const resumeEvidence = loadResumeEvidence();
 
   const updatePastedAd = (value) => {
     const meta = inferJobMeta(value);
@@ -103,10 +110,14 @@ export default function JobEvaluator({ go }) {
     }
     setLoading(true);
     try {
-      const evaluation = await llmAdapter.evaluateJob(profile, job);
+      const evidence = {
+        resumeEvidence,
+        questionnaireEvidence: { profile, answers }
+      };
+      const evaluation = await llmAdapter.evaluateJob(evidence, job);
       saveEvaluation(evaluation);
       try {
-        const savedEvaluation = await saveCloudEvaluation(profile, evaluation, job);
+        const savedEvaluation = await saveCloudEvaluation(evidence, evaluation, job);
         saveEvaluation(savedEvaluation);
       } catch (cloudSaveError) {
         console.warn('Cloud evaluation save failed after live evaluation succeeded', cloudSaveError);

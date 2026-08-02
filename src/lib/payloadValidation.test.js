@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url);
 const {
   PayloadValidationError,
   normalizeEvaluation,
+  normalizeEvaluationEvidence,
   normalizeFeedbackPayload,
   normalizeJobAd,
   normalizeProfileAnswers,
@@ -73,5 +74,35 @@ describe('payload validation', () => {
       description: 'Too short.',
       notes: ''
     }, { requireMinimumDescription: true })).toThrow(PayloadValidationError);
+  });
+
+  it('keeps resume qualifications separate from questionnaire evidence', () => {
+    const evidence = normalizeEvaluationEvidence({
+      resumeEvidence: {
+        sourceType: 'resume',
+        characterCount: 1200,
+        confidence: 82,
+        importedAt: '2026-07-27T20:00:00.000Z',
+        tools: ['SQL', 'Power BI'],
+        evidence: ['dashboarding'],
+        domains: ['business intelligence'],
+        titles: ['Operations Analyst'],
+        projects: ['Built an executive reporting dashboard.'],
+        systemsEvidence: ['Automated a monthly reconciliation workflow.']
+      },
+      questionnaireEvidence: {
+        answers: {
+          q8: 'Ambiguous problems with ownership.',
+          q9: 'High-volume repetitive work.'
+        },
+        profile: sampleProfile
+      }
+    });
+
+    expect(evidence.resumeEvidence.titles).toEqual(['Operations Analyst']);
+    expect(evidence.resumeEvidence.projects).toEqual(['Built an executive reporting dashboard.']);
+    expect(evidence.questionnaireEvidence.answers.q8).toBe('Ambiguous problems with ownership.');
+    expect(evidence.questionnaireEvidence.profile.tools_and_skills).toContain('SQL');
+    expect(evidence.questionnaireEvidence).not.toHaveProperty('resumeEvidence');
   });
 });
