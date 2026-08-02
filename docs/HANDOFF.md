@@ -1,6 +1,6 @@
 # CogFit Jobs handoff
 
-Last verified: 2026-07-27
+Last verified: 2026-08-02
 
 ## Goal
 
@@ -19,10 +19,10 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - The post-merge `Verify` run for `3716e65` completed successfully.
 - PR #6 merged dependency-security fixes into `main` as `43c12d0`. Both npm audits report zero vulnerabilities, and CI now fails on high or critical audit findings.
 - The post-merge `Verify` run for `43c12d0` completed successfully.
-- Draft PR #1, `codex/resume-first-onboarding`, adds resume-first evidence extraction. Its current branch includes PII redaction for retained evidence, a 5 MB upload limit, resume replacement for existing profiles, and a distinct resume/questionnaire evidence contract for profile generation, job evaluation, and cloud persistence.
+- PR #1 merged into `main` as `6e6fe17`. Resume-first onboarding is deployed, including PII-redacted retained evidence, a 5 MB upload limit, resume replacement for existing profiles, and a distinct resume/questionnaire evidence contract for profile generation, job evaluation, and cloud persistence.
 - Draft PR #2, `codex/svelte-migration`, is an independent frontend migration proposal.
 - Active local work, `codex/progressive-onboarding`, is stacked on PR #1 and redesigns onboarding around an early Provisional Analysis followed by progressive completion of all 24 questions.
-- PR #1, PR #2, and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
+- PR #2 and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
 
 ## Decisions
 
@@ -64,11 +64,15 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 
 ### Resume-first PR #1
 
+- PR #1 merged as `6e6fe17` and deployed to Firebase Hosting and Functions on 2026-08-02.
+- The post-merge GitHub Actions Verify run `30771643975` passed for `6e6fe17`.
 - Canonical verifier passed: lint, 6 test files with 21 tests, and production build.
 - Browser smoke test, public secret scan, predeploy secret scan, and root and Functions audits passed.
 - Functions syntax validation passed.
 - Regression coverage verifies that retained project evidence redacts email, phone, complete mailing address, and URL values; rejects files larger than 5 MB; rejects a single weak overlapping evidence phrase; and preserves resume and questionnaire evidence as separate validated inputs.
 - Browser smoke coverage verifies that an existing saved-profile user can open the resume replacement flow.
+- Live Hosting returned the deployed `index-B9wAz1-Q.js` build. Browser verification passed for home, new resume-first profile creation, saved-profile review, and resume replacement with no console or page errors.
+- All seven callable Functions report Node.js 22 in `us-central1`; an unauthenticated `evaluateJob` request returned `401 UNAUTHENTICATED` before model invocation.
 
 ### Merged dependency-security work
 
@@ -88,17 +92,17 @@ These results apply to the current local progressive-onboarding worktree. They a
 
 ## Next task
 
-1. Complete the progressive-onboarding canonical verifier and predeploy secret scan.
-2. Complete or explicitly document the signed-in browser walkthrough status.
-3. Review the final progressive diff and check for conflicts with the latest PR #1 head.
-4. Commit and push the remaining progressive-onboarding changes.
-5. Open a draft stacked PR against `codex/resume-first-onboarding`.
+1. Rebase the progressive-onboarding branch onto the latest `main` now that PR #1 has merged.
+2. Complete the progressive-onboarding canonical verifier and predeploy secret scan.
+3. Complete or explicitly document the signed-in browser walkthrough status.
+4. Review the final progressive diff and resolve any conflicts with merged resume-first onboarding.
+5. Commit and push the remaining progressive-onboarding changes, then open or retarget its draft PR against `main`.
 6. Configure branch protection to require the `Lint, test, build, smoke, and scan` check after confirming the desired merge policy.
 7. After branch or deployment changes, update this same handoff with the new active work and verified status.
 
 ## Risks or blockers
 
-- The progressive branch depends on unmerged PR #1 and must target `codex/resume-first-onboarding` until that dependency changes.
+- The progressive branch was stacked on PR #1 before it merged and now needs a clean rebase or merge-base review against `main` before opening or retargeting its PR.
 - A real signed-in local browser walkthrough has not yet been completed because it requires an authenticated Firebase session and may invoke the paid Gemini path.
 - The final canonical verifier, secret scan, and remote conflict review for progressive onboarding remain pending.
 - ChatGPT Work and Codex use separate filesystems. This handoff crosses that boundary only after its branch is committed and pushed to GitHub, and Work must open the same branch.
