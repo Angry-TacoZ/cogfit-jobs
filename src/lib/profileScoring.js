@@ -1,3 +1,5 @@
+import profileArrayLimits from '../../functions/workFitProfileLimits.json' with { type: 'json' };
+
 const sections = [
   {
     title: 'Current target roles',
@@ -63,11 +65,19 @@ const sections = [
 export const profileSections = sections;
 export const questionCount = sections.flatMap((section) => section.questions).length;
 
-const splitList = (value) =>
-  String(value || '')
+const splitList = (value, maxItems) => {
+  const seen = new Set();
+  return String(value || '')
     .split(/,|\n|;/)
     .map((item) => item.trim())
-    .filter(Boolean);
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (!item || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, maxItems);
+};
 
 const containsAny = (text, words) => words.some((word) => text.includes(word));
 
@@ -104,18 +114,18 @@ export function generateWorkFitProfile(answers) {
   if (!answers.q6 || answers.q6.length < 30) missing.push('tools and skills evidence');
 
   return {
-    target_role_families: splitList(answers.q1),
-    strongest_evidence: splitList(`${answers.q4 || ''}; ${answers.q5 || ''}`),
-    tools_and_skills: splitList(answers.q6),
-    energizers: splitList(answers.q8),
-    drainers: splitList(`${answers.q9 || ''}; ${answers.q11 || ''}`),
+    target_role_families: splitList(answers.q1, profileArrayLimits.target_role_families),
+    strongest_evidence: splitList(`${answers.q4 || ''}; ${answers.q5 || ''}`, profileArrayLimits.strongest_evidence),
+    tools_and_skills: splitList(answers.q6, profileArrayLimits.tools_and_skills),
+    energizers: splitList(answers.q8, profileArrayLimits.energizers),
+    drainers: splitList(`${answers.q9 || ''}; ${answers.q11 || ''}`, profileArrayLimits.drainers),
     preferred_problem_structure: answers.q13 || 'Not enough evidence yet.',
-    communication_preferences: splitList(answers.q18),
+    communication_preferences: splitList(answers.q18, profileArrayLimits.communication_preferences),
     interaction_limits: answers.q17 || 'Not enough evidence yet.',
     autonomy_needs: answers.q14 || 'Not enough evidence yet.',
-    negative_fit_patterns: splitList(`${answers.q21 || ''}; ${answers.q22 || ''}`),
-    hidden_costs: splitList(answers.q12),
-    misunderstood_resume_signals: splitList(answers.q7),
+    negative_fit_patterns: splitList(`${answers.q21 || ''}; ${answers.q22 || ''}`, profileArrayLimits.negative_fit_patterns),
+    hidden_costs: splitList(answers.q12, profileArrayLimits.hidden_costs),
+    misunderstood_resume_signals: splitList(answers.q7, profileArrayLimits.misunderstood_resume_signals),
     systems_thinking_score: systemsScore,
     confidence_score: confidence,
     missing_information: missing,
