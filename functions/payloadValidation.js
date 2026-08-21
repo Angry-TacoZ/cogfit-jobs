@@ -11,6 +11,7 @@ const MAX_NOTES_CHARS = 1000;
 const MAX_PROFILE_ANSWERS_CHARS = 18000;
 const MAX_EVALUATION_EVIDENCE_CHARS = 48000;
 const MAX_ID_CHARS = 128;
+const profileArrayFields = require('./workFitProfileLimits.json');
 const feedbackValues = new Set([
   'accurate',
   'too optimistic',
@@ -61,21 +62,21 @@ const workFitProfileSchema = {
     'missing_information'
   ],
   properties: {
-    target_role_families: { type: 'array', items: { type: 'string' }, maxItems: 8 },
-    strongest_evidence: { type: 'array', items: { type: 'string' }, maxItems: 10 },
-    tools_and_skills: { type: 'array', items: { type: 'string' }, maxItems: 20 },
-    energizers: { type: 'array', items: { type: 'string' }, maxItems: 10 },
-    drainers: { type: 'array', items: { type: 'string' }, maxItems: 10 },
+    target_role_families: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.target_role_families },
+    strongest_evidence: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.strongest_evidence },
+    tools_and_skills: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.tools_and_skills },
+    energizers: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.energizers },
+    drainers: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.drainers },
     preferred_problem_structure: { type: 'string' },
-    communication_preferences: { type: 'array', items: { type: 'string' }, maxItems: 8 },
+    communication_preferences: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.communication_preferences },
     interaction_limits: { type: 'string' },
     autonomy_needs: { type: 'string' },
-    negative_fit_patterns: { type: 'array', items: { type: 'string' }, maxItems: 10 },
-    hidden_costs: { type: 'array', items: { type: 'string' }, maxItems: 8 },
-    misunderstood_resume_signals: { type: 'array', items: { type: 'string' }, maxItems: 8 },
+    negative_fit_patterns: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.negative_fit_patterns },
+    hidden_costs: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.hidden_costs },
+    misunderstood_resume_signals: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.misunderstood_resume_signals },
     systems_thinking_score: systemsThinkingSchema,
     confidence_score: { type: 'integer', minimum: 0, maximum: 100 },
-    missing_information: { type: 'array', items: { type: 'string' }, maxItems: 10 }
+    missing_information: { type: 'array', items: { type: 'string' }, maxItems: profileArrayFields.missing_information }
   }
 };
 
@@ -144,19 +145,6 @@ const reportSchema = {
     missingInformation: { type: 'array', items: { type: 'string' }, maxItems: 8 },
     assumptions: { type: 'array', items: { type: 'string' }, maxItems: 8 }
   }
-};
-
-const profileArrayFields = {
-  target_role_families: 8,
-  strongest_evidence: 10,
-  tools_and_skills: 20,
-  energizers: 10,
-  drainers: 10,
-  communication_preferences: 8,
-  negative_fit_patterns: 10,
-  hidden_costs: 8,
-  misunderstood_resume_signals: 8,
-  missing_information: 10
 };
 
 const profileStringFields = [
