@@ -24,7 +24,7 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - Active local work, `codex/progressive-onboarding`, is stacked on PR #1 and redesigns onboarding around an early Provisional Analysis followed by progressive completion of all 24 questions.
 - PR #2 and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
 - PR #7 merged the resume evidence limit fix into `main` as `807cec7`. Hosting and all callable Functions were deployed from verified `main` commit `0da6397` on 2026-08-20. A signed-in resume replacement still needs a production retest before the original user report is considered fully closed.
-- Active branch `codex/production-deploy-workflow` adds a disabled-by-default GitHub Actions production release path using Google Workload Identity Federation, a protected `production` environment, exact-main commit checks, and post-deployment live smoke verification.
+- Draft PR #8 on `codex/production-deploy-workflow` adds a disabled-by-default GitHub Actions production release path using Google Workload Identity Federation, a protected `production` environment, exact-main commit checks, and post-deployment live smoke verification.
 
 ## Decisions
 
@@ -118,6 +118,7 @@ These results apply to the current local progressive-onboarding worktree. They a
 - Local browser smoke, live production smoke, public secret scan, predeploy secret scan, and root and Functions audits passed. Both audits report zero vulnerabilities.
 - The live smoke verifies Hosting, SPA route rewriting, the production JavaScript asset, and the unauthenticated rejection on `generateProfile` without invoking Gemini.
 - The workflow remains inert until `PRODUCTION_DEPLOY_ENABLED=true` is set. Before enabling it, GitHub's `production` environment must have required reviewers and the documented Workload Identity Federation variables must be configured.
+- GitHub Actions Verify run `32444144741` passed on PR #8's implementation commit `74ab00d`.
 
 ## Next task
 
