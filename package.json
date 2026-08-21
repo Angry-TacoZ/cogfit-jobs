@@ -10,6 +10,7 @@
     "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" vite.config.js",
     "test": "vitest run",
     "smoke": "node scripts/smoke-test.mjs",
+    "smoke:live": "node scripts/live-smoke-test.mjs",
     "scan:secrets": "node scripts/scan-public-secrets.mjs"
   },
   "dependencies": {
