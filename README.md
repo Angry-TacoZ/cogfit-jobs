@@ -84,6 +84,22 @@ powershell -ExecutionPolicy Bypass -File C:\Users\angry\.codex\sessions\scripts\
 
 Do not deploy if the scan reports browser-exposed secrets or direct browser calls to paid model APIs.
 
+### Protected production deployment
+
+The `Deploy production` GitHub Actions workflow can deploy the current `main` commit only after its `Verify` workflow succeeds. It checks that the verified commit is still the tip of `main`, repeats the deterministic lint, test, build, secret scan, and dependency audit gates, deploys Hosting and Functions, then runs a non-destructive live smoke test.
+
+The workflow is disabled by default. Before enabling it:
+
+1. Create a GitHub environment named `production` and configure required reviewers. Do not enable deployment without that approval rule.
+2. Create a dedicated Google Cloud deployment service account for this repository. Grant only the Firebase Hosting Admin, Cloud Functions Admin, and Service Account User roles needed by the existing Hosting and Functions deployment. Add further permissions only when a real failed deployment demonstrates they are required.
+3. Configure Google Cloud Workload Identity Federation for GitHub Actions. Restrict the provider to `Angry-TacoZ/cogfit-jobs`, and grant that repository principal `roles/iam.workloadIdentityUser` on the deployment service account.
+4. Add these GitHub Actions variables: `GCP_WORKLOAD_IDENTITY_PROVIDER` with the full provider resource name and `GCP_SERVICE_ACCOUNT` with the deployment service account email.
+5. Set the repository variable `PRODUCTION_DEPLOY_ENABLED` to `true` only after the environment protection and identity restrictions have been reviewed.
+
+The workflow uses GitHub OIDC and Google Application Default Credentials. Do not add a Firebase CI token or service-account JSON key to GitHub secrets. Generated `gha-creds-*.json` files are ignored by Git.
+
+For rollback, revert `main` to the last known-good application state through a reviewed pull request. After `Verify` passes and the production environment reviewer approves, the workflow redeploys that traceable state. Firebase Hosting release history remains available for a Hosting-only emergency rollback, but it does not roll back Functions.
+
 ## Prototype boundaries
 
 - No paid features.
