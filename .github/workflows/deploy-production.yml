@@ -98,6 +98,13 @@ jobs:
       - name: Audit function dependencies
         run: npm audit --prefix functions --audit-level=high
 
+      - name: Reconfirm the current main commit
+        shell: bash
+        run: |
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
+          test "$(git rev-parse origin/main)" = "$DEPLOY_SHA"
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
