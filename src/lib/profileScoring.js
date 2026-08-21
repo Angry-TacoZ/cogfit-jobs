@@ -79,6 +79,32 @@ const splitList = (value, maxItems) => {
     .slice(0, maxItems);
 };
 
+const selectBalancedEvidence = (workEvidence, projectEvidence, maxItems) => {
+  const sources = [
+    splitList(workEvidence, maxItems),
+    splitList(projectEvidence, maxItems)
+  ];
+  const selected = [];
+  const seen = new Set();
+
+  for (let index = 0; selected.length < maxItems; index += 1) {
+    let foundCandidate = false;
+    for (const source of sources) {
+      const item = source[index];
+      if (!item) continue;
+      foundCandidate = true;
+      const key = item.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      selected.push(item);
+      if (selected.length === maxItems) break;
+    }
+    if (!foundCandidate) break;
+  }
+
+  return selected;
+};
+
 const containsAny = (text, words) => words.some((word) => text.includes(word));
 
 function scoreSystemsThinking(answers) {
@@ -115,7 +141,7 @@ export function generateWorkFitProfile(answers) {
 
   return {
     target_role_families: splitList(answers.q1, profileArrayLimits.target_role_families),
-    strongest_evidence: splitList(`${answers.q4 || ''}; ${answers.q5 || ''}`, profileArrayLimits.strongest_evidence),
+    strongest_evidence: selectBalancedEvidence(answers.q4, answers.q5, profileArrayLimits.strongest_evidence),
     tools_and_skills: splitList(answers.q6, profileArrayLimits.tools_and_skills),
     energizers: splitList(answers.q8, profileArrayLimits.energizers),
     drainers: splitList(`${answers.q9 || ''}; ${answers.q11 || ''}`, profileArrayLimits.drainers),

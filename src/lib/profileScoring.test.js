@@ -40,4 +40,28 @@ describe('generateWorkFitProfile', () => {
     expect(profile.strongest_evidence).toHaveLength(10);
     expect(() => normalizeWorkFitProfile(profile)).not.toThrow();
   });
+
+  it('keeps distinct work and project evidence when their combined total exceeds the limit', () => {
+    const workEvidence = Array.from({ length: 10 }, (_, index) => `Work example ${index + 1}`);
+    const projectEvidence = Array.from({ length: 10 }, (_, index) => `Project example ${index + 1}`);
+    const profile = generateWorkFitProfile({
+      ...sampleProfileAnswers,
+      q4: workEvidence.join('; '),
+      q5: projectEvidence.join('; ')
+    });
+
+    expect(profile.strongest_evidence).toEqual([
+      'Work example 1',
+      'Project example 1',
+      'Work example 2',
+      'Project example 2',
+      'Work example 3',
+      'Project example 3',
+      'Work example 4',
+      'Project example 4',
+      'Work example 5',
+      'Project example 5'
+    ]);
+    expect(() => normalizeWorkFitProfile(profile)).not.toThrow();
+  });
 });

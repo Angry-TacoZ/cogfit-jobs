@@ -1,6 +1,6 @@
 # CogFit Jobs handoff
 
-Last verified: 2026-08-11
+Last verified: 2026-08-20
 
 ## Goal
 
@@ -103,8 +103,9 @@ These results apply to the current local progressive-onboarding worktree. They a
 
 - Reproduced the reported failure: ten resume projects seeded into both questions 4 and 5 produced 20 `strongest_evidence` items, while Functions validation permits 10.
 - The focused regression passes and confirms the generated draft deduplicates to 10 items and passes `normalizeWorkFitProfile`.
+- External review found that a simple combined cap could let a long question 4 answer crowd out all question 5 project evidence. The revised selector deduplicates each source and interleaves them, with regression coverage for distinct work and project lists.
 - Clean root and Functions installs passed.
-- Canonical verifier passed: lint, 6 test files with 22 tests, and production build.
+- Canonical verifier passed after the review fix: lint, 6 test files with 23 tests, and production build.
 - Browser smoke, public secret scan, predeploy secret scan, and root and Functions audits passed. Both audits report zero vulnerabilities.
 - The root lockfile moved `brace-expansion` from 5.0.8 to 5.0.9 and `nanoid` from 3.3.16 to 3.3.18 after new high-severity advisories caused the required audit gate to fail.
 
