@@ -23,7 +23,7 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - Draft PR #2, `codex/svelte-migration`, is an independent frontend migration proposal.
 - Active local work, `codex/progressive-onboarding`, is stacked on PR #1 and redesigns onboarding around an early Provisional Analysis followed by progressive completion of all 24 questions.
 - PR #2 and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
-- PR #7 merged the resume evidence limit fix into `main` as `807cec7`. The fix is not live until the reviewed `main` state is deployed and resume replacement is retested with a signed-in account.
+- PR #7 merged the resume evidence limit fix into `main` as `807cec7`. Hosting and all callable Functions were deployed from verified `main` commit `0da6397` on 2026-08-20. A signed-in resume replacement still needs a production retest before the original user report is considered fully closed.
 
 ## Decisions
 
@@ -109,21 +109,23 @@ These results apply to the current local progressive-onboarding worktree. They a
 - Browser smoke, public secret scan, predeploy secret scan, and root and Functions audits passed. Both audits report zero vulnerabilities.
 - The root lockfile moved `brace-expansion` from 5.0.8 to 5.0.9 and `nanoid` from 3.3.16 to 3.3.18 after new high-severity advisories caused the required audit gate to fail.
 - External AI review approved commit `df9bec8` with no blocking findings. PR #7 merged as `807cec7`, and its pull-request Verify workflow passed.
+- Firebase deployed Hosting and all seven Node.js 22 callable Functions from `0da6397`. Live Hosting and the `/profile` route returned 200, the served `assets/index-w0cIDkPs.js` matched the verified build, browser checks found no console or page errors, and unauthenticated `generateProfile` returned 401.
 
 ## Next task
 
-1. Deploy the reviewed `main` state and retest resume replacement with a signed-in account.
-2. Rebase the progressive-onboarding branch onto the latest `main` now that PR #1 and PR #7 have merged.
-3. Complete the progressive-onboarding canonical verifier, predeploy secret scan, and signed-in browser walkthrough status.
-4. Review the final progressive diff and resolve any conflicts with merged resume-first onboarding.
-5. Commit and push the remaining progressive-onboarding changes, then open or retarget its draft PR against `main`.
-6. Configure branch protection to require the `Lint, test, build, smoke, and scan` check after confirming the desired merge policy.
-7. After branch or deployment changes, update this same handoff with the new active work and verified status.
+1. Retest resume replacement with a signed-in production account.
+2. Create and review a protected GitHub Actions production deployment workflow using short-lived Google Cloud authentication.
+3. Rebase the progressive-onboarding branch onto the latest `main` now that PR #1 and PR #7 have merged.
+4. Complete the progressive-onboarding canonical verifier, predeploy secret scan, and signed-in browser walkthrough status.
+5. Review the final progressive diff and resolve any conflicts with merged resume-first onboarding.
+6. Commit and push the remaining progressive-onboarding changes, then open or retarget its draft PR against `main`.
+7. Configure branch protection to require the `Lint, test, build, smoke, and scan` check after confirming the desired merge policy.
+8. After branch or deployment changes, update this same handoff with the new active work and verified status.
 
 ## Risks or blockers
 
 - The progressive branch was stacked on PR #1 before it merged and now needs a clean rebase or merge-base review against `main` before opening or retargeting its PR.
 - A real signed-in local browser walkthrough has not yet been completed because it requires an authenticated Firebase session and may invoke the paid Gemini path.
 - The final canonical verifier, secret scan, and remote conflict review for progressive onboarding remain pending.
-- The resume evidence limit fix is merged and verified in CI but still requires deployment and a signed-in production retest before the live issue is considered resolved.
+- The resume evidence limit fix is merged, deployed, and verified at the public and unauthenticated boundaries, but still requires a signed-in production resume-replacement retest before the live issue is considered resolved.
 - ChatGPT Work and Codex use separate filesystems. This handoff crosses that boundary only after its branch is committed and pushed to GitHub, and Work must open the same branch.
