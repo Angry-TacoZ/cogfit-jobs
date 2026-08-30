@@ -19,7 +19,7 @@ initializeApp();
 
 const db = getFirestore();
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
-const geminiModel = defineString('GEMINI_MODEL', { default: 'gemini-3.5-flash' });
+const geminiModel = defineString('GEMINI_MODEL', { default: 'gemini-3.6-flash' });
 const adminEmails = defineString('ADMIN_EMAILS', { default: '' });
 const userDailyLimit = defineInt('USER_DAILY_EVALUATION_LIMIT', { default: 5 });
 const globalDailyLimit = defineInt('GLOBAL_DAILY_EVALUATION_LIMIT', { default: 50 });
