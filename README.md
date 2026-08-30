@@ -37,7 +37,7 @@ Set the Gemini key as a Firebase Functions secret:
 firebase functions:secrets:set GEMINI_API_KEY --project cogfit-jobs
 ```
 
-The function defaults to `gemini-3.6-flash`, matching the intended live evaluator model. Search grounding and other tools are not enabled in the function, so the evaluator should only make standard model calls unless the function code is intentionally changed later. A configured `GEMINI_MODEL` Functions parameter overrides this default. When updating an existing deployment, set that parameter to `gemini-3.6-flash` during the Functions deploy; changing the source default alone does not replace an existing override.
+The function defaults to `gemini-3.6-flash`, the intended evaluator model. Search grounding and other tools are not enabled in the function, so the evaluator should only make standard model calls unless the function code is intentionally changed later. Its request configuration omits Gemini 3.6-unsupported sampling parameters. A configured `GEMINI_MODEL` Functions parameter overrides this default. When updating an existing deployment, set that parameter to `gemini-3.6-flash` during the Functions deploy; changing the source default alone does not replace an existing override.
 
 ## Required Firebase setup
 

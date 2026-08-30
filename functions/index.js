@@ -3,6 +3,7 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineInt, defineSecret, defineString } = require('firebase-functions/params');
 const { GoogleGenAI } = require('@google/genai');
+const { buildGeminiJsonConfig } = require('./geminiConfig');
 const {
   PayloadValidationError,
   workFitProfileSchema,
@@ -456,19 +457,6 @@ function plainJsonPrompt(prompt, schema) {
 }
 
 async function callGeminiJson(client, model, prompt, schema, maxOutputTokens, schemaMode) {
-  const config = {
-    responseMimeType: 'application/json',
-    maxOutputTokens,
-    temperature: 0.2
-  };
-
-  if (schemaMode === 'schema') {
-    config.responseSchema = schema;
-  }
-  if (schemaMode === 'jsonSchema') {
-    config.responseJsonSchema = schema;
-  }
-
   const contents = schemaMode === 'plain'
     ? plainJsonPrompt(prompt, schema)
     : prompt;
@@ -476,7 +464,7 @@ async function callGeminiJson(client, model, prompt, schema, maxOutputTokens, sc
   return client.models.generateContent({
     model,
     contents,
-    config
+    config: buildGeminiJsonConfig({ maxOutputTokens, schema, schemaMode })
   });
 }
 
@@ -531,11 +519,7 @@ async function generatePlainGeminiJson(prompt, maxOutputTokens, outputLabel = 's
       const response = await client.models.generateContent({
         model,
         contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          maxOutputTokens,
-          temperature: 0.1
-        }
+        config: buildGeminiJsonConfig({ maxOutputTokens, schemaMode: 'plain' })
       });
       return parseGeminiJson(response, outputLabel);
     } catch (error) {
