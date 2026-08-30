@@ -6,5 +6,4 @@ functions/.env
 functions/.env.*
 .firebase
 firebase-debug.log
-gha-creds-*.json
 *.log
