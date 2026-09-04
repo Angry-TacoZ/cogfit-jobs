@@ -1,16 +1,24 @@
 const { createRequire } = require('node:module');
+const { generateKeyPairSync } = require('node:crypto');
 const { createFirestore } = require('../functions/firestoreClient');
 
 const functionsRequire = createRequire(require.resolve('../functions/package.json'));
-const { deleteApp, initializeApp } = functionsRequire('firebase-admin/app');
+const { cert, deleteApp, initializeApp } = functionsRequire('firebase-admin/app');
 const { FieldValue } = functionsRequire('firebase-admin/firestore');
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('Run this check through the Firestore emulator.');
 }
 
+// The emulator accepts this per-run fake identity; it is never a production credential.
+const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const app = initializeApp({
-  projectId: 'cogfit-jobs'
+  projectId: 'cogfit-jobs',
+  credential: cert({
+    projectId: 'cogfit-jobs',
+    clientEmail: 'firestore-rest-smoke@cogfit-jobs.iam.gserviceaccount.com',
+    privateKey: privateKey.export({ type: 'pkcs8', format: 'pem' })
+  })
 }, 'firestore-rest-smoke');
 const db = createFirestore(app);
 const profileRef = db.doc('users/firestore-rest-smoke/profiles/firestore-rest-smoke');
