@@ -10,6 +10,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('Run this check through the Firestore emulator.');
 }
 
+// The emulator accepts this per-run fake identity; it is never a production credential.
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const app = initializeApp({
   projectId: 'cogfit-jobs',
