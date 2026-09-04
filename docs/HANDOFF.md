@@ -24,7 +24,7 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - Active local work, `codex/progressive-onboarding`, is stacked on PR #1 and redesigns onboarding around an early Provisional Analysis followed by progressive completion of all 24 questions.
 - PR #2 and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
 - PR #7 merged the resume evidence limit fix into `main` as `807cec7`. Hosting and all callable Functions were deployed from verified `main` commit `0da6397` on 2026-08-20. A signed-in resume replacement still needs a production retest before the original user report is considered fully closed.
-- Active local branch `codex/fix-firestore-profile-save` diagnoses a signed-in profile-save failure after resume import. Production logs show `generateProfile` returned 200, then `saveProfile` returned 500 because Firestore's gRPC metadata plugin rejected the runtime metadata response. The branch switches the Admin Firestore client to its supported REST transport, preserving existing authentication, App Check, validation, quota, and document behavior.
+- Draft PR #12, `codex/fix-firestore-profile-save`, diagnoses a signed-in profile-save failure after resume import. Production logs show `generateProfile` returned 200, then `saveProfile` returned 500 because Firestore's gRPC metadata plugin rejected the runtime metadata response. The branch switches the Admin Firestore client to its supported REST transport, preserving existing authentication, App Check, validation, quota, and document behavior. Its GitHub Actions Verify run `33907809309` passed, including a Firestore emulator write/read/delete check.
 
 ## Decisions
 
@@ -114,7 +114,7 @@ These results apply to the current local progressive-onboarding worktree. They a
 
 ## Next task
 
-1. Review and merge the focused Firestore profile-save fix, deploy Functions, then retest signed-in profile updates with and without resume evidence and confirm cloud reload.
+1. Review and merge PR #12, deploy Functions, then retest signed-in profile updates with and without resume evidence and confirm cloud reload.
 2. Create and review a protected GitHub Actions production deployment workflow using short-lived Google Cloud authentication.
 3. Rebase the progressive-onboarding branch onto the latest `main` now that PR #1 and PR #7 have merged.
 4. Complete the progressive-onboarding canonical verifier, predeploy secret scan, and signed-in browser walkthrough status.
@@ -125,6 +125,7 @@ These results apply to the current local progressive-onboarding worktree. They a
 
 ## Risks or blockers
 
+- PR #12's Firestore REST smoke check passed in GitHub Actions. Local execution remains blocked because the Windows Java installation requires administrator approval; no production credentials or deployment are needed for the CI check.
 - The progressive branch was stacked on PR #1 before it merged and now needs a clean rebase or merge-base review against `main` before opening or retargeting its PR.
 - A real signed-in local browser walkthrough has not yet been completed because it requires an authenticated Firebase session and may invoke the paid Gemini path.
 - The final canonical verifier, secret scan, and remote conflict review for progressive onboarding remain pending.
