@@ -1,6 +1,9 @@
-const { deleteApp, initializeApp } = require('../functions/node_modules/firebase-admin/app');
-const { FieldValue } = require('../functions/node_modules/firebase-admin/firestore');
+const { createRequire } = require('node:module');
 const { createFirestore } = require('../functions/firestoreClient');
+
+const functionsRequire = createRequire(require.resolve('../functions/package.json'));
+const { deleteApp, initializeApp } = functionsRequire('firebase-admin/app');
+const { FieldValue } = functionsRequire('firebase-admin/firestore');
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('Run this check through the Firestore emulator.');
