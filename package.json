@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" vite.config.js",
+    "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" \"scripts/**/*.cjs\" vite.config.js",
     "test": "vitest run",
     "smoke": "node scripts/smoke-test.mjs",
+    "smoke:firestore": "firebase emulators:exec --only firestore --project cogfit-jobs \"node scripts/firestore-rest-smoke.cjs\"",
     "scan:secrets": "node scripts/scan-public-secrets.mjs"
   },
   "dependencies": {
@@ -25,8 +26,13 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "firebase-tools": "15.29.0",
     "globals": "^17.7.0",
     "playwright": "^1.60.0",
     "vitest": "^4.1.9"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.8.15",
+    "browserslist": "4.28.9"
   }
 }
