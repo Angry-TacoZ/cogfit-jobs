@@ -75,7 +75,7 @@ async function requireCurrentUser(action) {
   return auth.currentUser;
 }
 
-function protectedApiError(error) {
+export function protectedApiError(error, action = 'protected action') {
   const code = String(error?.code || '').replace(/^functions\//, '');
   const message = error?.message || '';
   if (message.includes('appCheck') || message.includes('AppCheck') || message.includes('403')) {
@@ -104,17 +104,17 @@ function protectedApiError(error) {
     return new Error('The live evaluator is temporarily unavailable. Try again in a few minutes.');
   }
   if (code === 'internal' || message === 'internal') {
-    return new Error('The live evaluator hit a server error while generating the report. Your answers are saved, so try again once. If it repeats, contact James with what step failed.');
+    return new Error(`The ${action} hit a server error. Try again once. If it repeats, contact James with what step failed.`);
   }
 
   return new Error(message || 'The protected live evaluator failed. Try again, or contact James if it repeats.');
 }
 
-async function runProtectedCall(callback) {
+async function runProtectedCall(action, callback) {
   try {
     return await callback();
   } catch (error) {
-    throw protectedApiError(error);
+    throw protectedApiError(error, action);
   }
 }
 
@@ -135,7 +135,7 @@ export async function signOutCurrentUser() {
 }
 
 export async function callEvaluateJob(evidence, jobAd) {
-  return runProtectedCall(async () => {
+  return runProtectedCall('live evaluation', async () => {
     await startAppCheck();
     await requireCurrentUser('running live analysis');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
@@ -146,7 +146,7 @@ export async function callEvaluateJob(evidence, jobAd) {
 }
 
 export async function callGenerateProfile(answers, draftProfile, resumeEvidence = null) {
-  return runProtectedCall(async () => {
+  return runProtectedCall('live profile generation', async () => {
     await startAppCheck();
     await requireCurrentUser('generating the final work-fit profile');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
@@ -157,7 +157,7 @@ export async function callGenerateProfile(answers, draftProfile, resumeEvidence 
 }
 
 export async function saveCloudProfile(profile, answers = {}, resumeEvidence = null) {
-  return runProtectedCall(async () => {
+  return runProtectedCall('cloud profile save', async () => {
     await startAppCheck();
     await requireCurrentUser('saving your profile');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
@@ -168,7 +168,7 @@ export async function saveCloudProfile(profile, answers = {}, resumeEvidence = n
 }
 
 export async function saveCloudEvaluation(evidence, evaluation, jobAd) {
-  return runProtectedCall(async () => {
+  return runProtectedCall('cloud evaluation save', async () => {
     await startAppCheck();
     await requireCurrentUser('saving the job evaluation');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
@@ -179,7 +179,7 @@ export async function saveCloudEvaluation(evidence, evaluation, jobAd) {
 }
 
 export async function loadCloudEvaluations() {
-  return runProtectedCall(async () => {
+  return runProtectedCall('saved evaluation load', async () => {
     await startAppCheck();
     await requireCurrentUser('loading saved evaluations');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
@@ -190,7 +190,7 @@ export async function loadCloudEvaluations() {
 }
 
 export async function saveCloudFeedback(profileId, evaluationId, value) {
-  return runProtectedCall(async () => {
+  return runProtectedCall('feedback save', async () => {
     await startAppCheck();
     await requireCurrentUser('saving feedback');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');
@@ -200,7 +200,7 @@ export async function saveCloudFeedback(profileId, evaluationId, value) {
 }
 
 export async function loadAdminFeedbackSummary() {
-  return runProtectedCall(async () => {
+  return runProtectedCall('admin dashboard load', async () => {
     await startAppCheck();
     await requireCurrentUser('opening the admin dashboard');
     const functions = getFunctions(await getFirebaseApp(), 'us-central1');

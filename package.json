@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" vite.config.js",
+    "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" \"scripts/**/*.cjs\" vite.config.js",
     "test": "vitest run",
     "smoke": "node scripts/smoke-test.mjs",
+    "smoke:firestore": "firebase emulators:exec --only firestore --project cogfit-jobs \"node scripts/firestore-rest-smoke.cjs\"",
     "scan:secrets": "node scripts/scan-public-secrets.mjs"
   },
   "dependencies": {

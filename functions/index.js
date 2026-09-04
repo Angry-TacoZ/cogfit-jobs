@@ -1,9 +1,10 @@
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { FieldValue } = require('firebase-admin/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineInt, defineSecret, defineString } = require('firebase-functions/params');
 const { GoogleGenAI } = require('@google/genai');
 const { buildGeminiJsonConfig } = require('./geminiConfig');
+const { createFirestore } = require('./firestoreClient');
 const {
   PayloadValidationError,
   workFitProfileSchema,
@@ -16,9 +17,8 @@ const {
   normalizeWorkFitProfile
 } = require('./payloadValidation');
 
-initializeApp();
-
-const db = getFirestore();
+const app = initializeApp();
+const db = createFirestore(app);
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const geminiModel = defineString('GEMINI_MODEL', { default: 'gemini-3.6-flash' });
 const adminEmails = defineString('ADMIN_EMAILS', { default: '' });

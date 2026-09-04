@@ -55,5 +55,15 @@ export default [
         ...globals.node
       }
     }
+  },
+  {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node
+      }
+    }
   }
 ];

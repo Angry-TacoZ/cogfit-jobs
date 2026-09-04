@@ -11,6 +11,7 @@ const {
   normalizeFeedbackPayload,
   normalizeJobAd,
   normalizeProfileAnswers,
+  normalizeResumeEvidence,
   normalizeWorkFitProfile
 } = require('../../functions/payloadValidation.js');
 
@@ -104,5 +105,23 @@ describe('payload validation', () => {
     expect(evidence.questionnaireEvidence.answers.q8).toBe('Ambiguous problems with ownership.');
     expect(evidence.questionnaireEvidence.profile.tools_and_skills).toContain('SQL');
     expect(evidence.questionnaireEvidence).not.toHaveProperty('resumeEvidence');
+  });
+
+  it('accepts the imported resume evidence shape used by cloud profile saves', () => {
+    const evidence = normalizeResumeEvidence({
+      sourceType: 'resume',
+      characterCount: 4200,
+      confidence: 76,
+      importedAt: '2026-09-04T02:30:00.000Z',
+      tools: ['Python', 'Firebase Functions', 'SQLite', 'ServiceNow'],
+      evidence: ['deployed apps', 'workflow automation', 'internal tools'],
+      domains: ['enterprise IT', 'healthcare operations'],
+      titles: ['Claims Examiner', 'Help Desk Analyst'],
+      projects: ['Built a deployed internal workflow tool.'],
+      systemsEvidence: ['Mapped handoffs across a support process.']
+    });
+
+    expect(evidence.tools).toContain('Firebase Functions');
+    expect(evidence.projects).toEqual(['Built a deployed internal workflow tool.']);
   });
 });
