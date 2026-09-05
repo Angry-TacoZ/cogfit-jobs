@@ -1,0 +1,14 @@
+{
+  "jobs": [
+    {
+      "id": 101,
+      "title": "AI Operations Analyst",
+      "location": { "name": "Remote - US" },
+      "departments": [{ "name": "Operations" }],
+      "content": "<p>Build <strong>workflow automation</strong> and documentation.</p><script>alert('never execute')</script>",
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/101",
+      "updated_at": "2026-07-10T12:00:00Z"
+    },
+    { "id": 102, "title": "Invalid destination", "absolute_url": "javascript:alert(1)" }
+  ]
+}
