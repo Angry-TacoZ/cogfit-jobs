@@ -8,7 +8,8 @@ const {
   getGeminiResponseDiagnostics,
   getGeminiResponseText,
   isRetryableGeminiError,
-  parseGeminiJson
+  parseGeminiJson,
+  summarizeGeminiError
 } = require('./geminiResponse');
 const { createFirestore } = require('./firestoreClient');
 const {
@@ -292,13 +293,7 @@ async function requireProtectedUser(request, actionLabel, { consumeQuota = false
 }
 
 function apiErrorSummary(error) {
-  return {
-    name: error?.name,
-    status: error?.status,
-    code: error?.code,
-    isGeminiOutputError: error?.isGeminiOutputError === true,
-    message: String(error?.message || '').slice(0, 500)
-  };
+  return summarizeGeminiError(error);
 }
 
 function isTransientGeminiError(error) {

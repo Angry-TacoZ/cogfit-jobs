@@ -78,9 +78,28 @@ function getGeminiResponseDiagnostics(response) {
   };
 }
 
-function markGeminiOutputError(error) {
+function markGeminiOutputError(error, reason) {
   error.isGeminiOutputError = true;
+  error.geminiOutputReason = reason;
   return error;
+}
+
+function summarizeGeminiError(error) {
+  if (error?.isGeminiOutputError === true) {
+    return {
+      name: error?.name,
+      isGeminiOutputError: true,
+      reason: error?.geminiOutputReason || 'invalid_json'
+    };
+  }
+
+  return {
+    name: error?.name,
+    status: error?.status,
+    code: error?.code,
+    isGeminiOutputError: false,
+    message: String(error?.message || '').slice(0, 500)
+  };
 }
 
 function isRetryableGeminiError(error) {
@@ -96,13 +115,21 @@ function isRetryableGeminiError(error) {
 function parseGeminiJson(response, outputLabel = 'JSON response') {
   const text = getGeminiResponseText(response);
   if (!text) {
-    throw markGeminiOutputError(new Error(`Gemini response did not include output text for ${outputLabel}.`));
+    throw markGeminiOutputError(
+      new Error(`Gemini response did not include output text for ${outputLabel}.`),
+      'empty_output'
+    );
   }
 
   try {
     return JSON.parse(extractJsonObject(text));
   } catch (error) {
-    throw markGeminiOutputError(error);
+    const reason = error.message === 'Gemini response contained incomplete JSON.'
+      ? 'incomplete_json'
+      : error.message === 'Gemini response did not contain a JSON object.'
+        ? 'missing_json_object'
+        : 'invalid_json';
+    throw markGeminiOutputError(error, reason);
   }
 }
 
@@ -110,5 +137,6 @@ module.exports = {
   getGeminiResponseDiagnostics,
   getGeminiResponseText,
   isRetryableGeminiError,
-  parseGeminiJson
+  parseGeminiJson,
+  summarizeGeminiError
 };
