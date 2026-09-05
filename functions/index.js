@@ -158,6 +158,7 @@ function buildPrompt(evidence, jobAd) {
     '- Role Fit Score considers skills match, project evidence, domain match, role-family match, and title or credential gap.',
     '- Callback Likelihood considers formal title match, years, degree or cert requirements, ATS keyword match, portfolio evidence, competitiveness, and networking bypass potential.',
     '- Cognitive Fit Score considers autonomy, ambiguity type, complexity, repetition, customer/contact load, communication mode, building versus operating versus selling balance, travel, and schedule demands.',
+    '- The Cognitive Fit explanation must connect at least two concrete demands from the job ad to the candidate\'s questionnaire evidence. Name the relevant working-style preference or limit, explain whether the role supports or conflicts with it, and describe the likely cognitive effect. Do not only restate the role duties.',
     '- Culture / Workstyle Risk considers micromanagement, quota pressure, call-center work, heavy live meetings, political friction, vague fast-paced chaos, travel, unclear ownership, and innovation theater.',
     '',
     `Resume evidence JSON:\n${JSON.stringify(evidence.resumeEvidence, null, 2)}`,
@@ -191,7 +192,7 @@ function buildReportPrompt(evidence, jobAd) {
       sections: {
         systemsThinkingMatch: 'Why the systems-thinking score is justified.',
         skillsEvidenceMatch: 'Why the skills and evidence score is justified.',
-        dayToDayReality: 'Likely day-to-day work based on the ad.',
+        dayToDayReality: 'Briefly describe the likely day-to-day work from the ad, then connect at least two concrete demands to the candidate\'s questionnaire-based cognitive working style and explain the likely support or friction and cognitive effect.',
         potentialRisks: ['Risk to verify'],
         resumePositioningAngle: 'How to frame the candidate for this role.',
         interviewTalkingPoints: ['Specific talking point'],
