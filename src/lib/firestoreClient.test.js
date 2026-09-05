@@ -14,6 +14,6 @@ describe('server Firestore client', () => {
     expect(createFirestore(app, initialize, env)).toBe(firestore);
     expect(initialize).toHaveBeenCalledWith(app, firestoreSettings);
     expect(firestoreSettings).toEqual({ preferRest: true });
-    expect(env.GCE_METADATA_HOST).toBe('metadata.google.internal');
+    expect(env.GCE_METADATA_HOST).toBe('metadata.google.internal.');
   });
 });
