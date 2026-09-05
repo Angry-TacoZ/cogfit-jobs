@@ -20,7 +20,6 @@
     "firebase-functions": "^7.2.5"
   },
   "overrides": {
-    "gaxios": "^7.1.5",
     "protobufjs": "^7.6.3",
     "retry-request": "^8.0.3",
     "teeny-request": "^10.1.3",
