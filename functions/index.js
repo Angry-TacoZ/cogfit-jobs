@@ -192,7 +192,7 @@ function buildReportPrompt(evidence, jobAd) {
       sections: {
         systemsThinkingMatch: 'Why the systems-thinking score is justified.',
         skillsEvidenceMatch: 'Why the skills and evidence score is justified.',
-        dayToDayReality: 'Explain how at least two concrete job demands map to the candidate\'s questionnaire-based cognitive working style, including the likely support or friction.',
+        dayToDayReality: 'Briefly describe the likely day-to-day work from the ad, then connect at least two concrete demands to the candidate\'s questionnaire-based cognitive working style and explain the likely support or friction and cognitive effect.',
         potentialRisks: ['Risk to verify'],
         resumePositioningAngle: 'How to frame the candidate for this role.',
         interviewTalkingPoints: ['Specific talking point'],
