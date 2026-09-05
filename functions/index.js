@@ -4,6 +4,13 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineInt, defineSecret, defineString } = require('firebase-functions/params');
 const { GoogleGenAI } = require('@google/genai');
 const { buildGeminiJsonConfig } = require('./geminiConfig');
+const {
+  getGeminiResponseDiagnostics,
+  getGeminiResponseText,
+  isRetryableGeminiError,
+  parseGeminiJson,
+  summarizeGeminiError
+} = require('./geminiResponse');
 const { createFirestore } = require('./firestoreClient');
 const {
   PayloadValidationError,
@@ -258,91 +265,16 @@ function buildProfilePrompt(answers, draftProfile, resumeEvidence) {
   ].join('\n');
 }
 
-function extractJsonObject(text) {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  const candidate = fenced ? fenced[1].trim() : trimmed;
-  if (candidate.startsWith('{') && candidate.endsWith('}')) {
-    return candidate;
-  }
-
-  const start = candidate.indexOf('{');
-  if (start === -1) {
-    throw new Error('Gemini response did not contain a JSON object.');
-  }
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let index = start; index < candidate.length; index += 1) {
-    const char = candidate[index];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (char === '\\') {
-      escaped = true;
-      continue;
-    }
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) {
-      continue;
-    }
-    if (char === '{') {
-      depth += 1;
-    }
-    if (char === '}') {
-      depth -= 1;
-      if (depth === 0) {
-        return candidate.slice(start, index + 1);
-      }
-    }
-  }
-
-  throw new Error('Gemini response contained incomplete JSON.');
-}
-
-function getGeminiResponseText(response) {
-  if (typeof response?.text === 'string') {
-    return response.text;
-  }
-  if (typeof response?.text === 'function') {
-    const textResult = response.text();
-    if (typeof textResult === 'string') {
-      return textResult;
-    }
-  }
-
-  const candidateText = response?.candidates
-    ?.flatMap((candidate) => candidate?.content?.parts || [])
-    .map((part) => part?.text)
-    .filter(Boolean)
-    .join('\n');
-
-  return candidateText || '';
-}
-
-function parseGeminiJson(response, outputLabel = 'JSON response') {
+function logGeminiJsonParseFailure(response, outputLabel, error) {
   const text = getGeminiResponseText(response);
-  if (!text) {
-    throw new Error(`Gemini response did not include output text for ${outputLabel}.`);
-  }
-
-  try {
-    return JSON.parse(extractJsonObject(text));
-  } catch (error) {
-    console.error('Gemini JSON parse failed', {
-      outputLabel,
-      textLength: text.length,
-      firstCharacter: text.trim().slice(0, 1),
-      lastCharacter: text.trim().slice(-1),
-      error: apiErrorSummary(error)
-    });
-    throw error;
-  }
+  console.error('Gemini JSON parse failed', {
+    outputLabel,
+    textLength: text.length,
+    firstCharacter: text.trim().slice(0, 1),
+    lastCharacter: text.trim().slice(-1),
+    ...getGeminiResponseDiagnostics(response),
+    error: apiErrorSummary(error)
+  });
 }
 
 async function requireProtectedUser(request, actionLabel, { consumeQuota = false } = {}) {
@@ -361,12 +293,7 @@ async function requireProtectedUser(request, actionLabel, { consumeQuota = false
 }
 
 function apiErrorSummary(error) {
-  return {
-    name: error?.name,
-    status: error?.status,
-    code: error?.code,
-    message: String(error?.message || '').slice(0, 500)
-  };
+  return summarizeGeminiError(error);
 }
 
 function isTransientGeminiError(error) {
@@ -413,10 +340,12 @@ function classifyGeminiFailures(failures, outputLabel = 'structured JSON') {
       message: 'Gemini was temporarily unavailable while generating the report. Try again in a few minutes.'
     };
   }
-  if (failures.some((failure) => failure.error?.name === 'SyntaxError' || String(failure.error?.message || '').includes('JSON'))) {
+  if (failures.some((failure) => failure.error?.isGeminiOutputError
+    || failure.error?.name === 'SyntaxError'
+    || String(failure.error?.message || '').includes('JSON'))) {
     return {
       code: 'failed-precondition',
-      message: `Gemini returned output that could not be parsed as the expected ${outputLabel}. Try again with slightly shorter input.`
+      message: `Gemini returned an incomplete or invalid ${outputLabel}. Try generating the report again.`
     };
   }
 
@@ -488,7 +417,12 @@ async function generateStructuredGemini(prompt, schema, maxOutputTokens, outputL
     for (let retry = 0; retry < 3; retry += 1) {
       try {
         const response = await callGeminiJson(client, attempt.model, prompt, schema, maxOutputTokens, attempt.schemaMode);
-        return parseGeminiJson(response, outputLabel);
+        try {
+          return parseGeminiJson(response, outputLabel);
+        } catch (error) {
+          logGeminiJsonParseFailure(response, outputLabel, error);
+          throw error;
+        }
       } catch (error) {
         const failure = { ...attempt, retry, error: apiErrorSummary(error) };
         failures.push(failure);
@@ -522,12 +456,17 @@ async function generatePlainGeminiJson(prompt, maxOutputTokens, outputLabel = 's
         contents: prompt,
         config: buildGeminiJsonConfig({ maxOutputTokens, schemaMode: 'plain' })
       });
-      return parseGeminiJson(response, outputLabel);
+      try {
+        return parseGeminiJson(response, outputLabel);
+      } catch (error) {
+        logGeminiJsonParseFailure(response, outputLabel, error);
+        throw error;
+      }
     } catch (error) {
       const failure = { model, schemaMode: 'plain', retry, error: apiErrorSummary(error) };
       failures.push(failure);
       console.error('Gemini plain JSON generation attempt failed', failure);
-      if (!isTransientGeminiError(error) || retry === 1) {
+      if (!isRetryableGeminiError(error) || retry === 1) {
         break;
       }
       await sleep(1200 * (retry + 1));
