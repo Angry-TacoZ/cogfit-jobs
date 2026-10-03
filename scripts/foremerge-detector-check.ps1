@@ -6,6 +6,10 @@ $ErrorActionPreference = 'Stop'
 if (-not (Test-Path -LiteralPath $Foremerge -PathType Leaf)) {
     throw "Foremerge executable not found: $Foremerge"
 }
+$version = & $Foremerge --version
+if ($LASTEXITCODE -ne 0 -or $version -ne 'foremerge 0.5.0') {
+    throw "This detector check requires Foremerge 0.5.0; found: $version"
+}
 
 $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $repo = Join-Path $tempRoot ("cogfit-foremerge-check-" + [guid]::NewGuid().ToString('N'))
@@ -35,7 +39,8 @@ try {
 }
 finally {
     $resolvedRepo = [IO.Path]::GetFullPath($repo)
-    if ($resolvedRepo.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase) -and
+    if ((Test-Path -LiteralPath $resolvedRepo) -and
+        $resolvedRepo.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase) -and
         (Split-Path -Leaf $resolvedRepo) -like 'cogfit-foremerge-check-*') {
         Remove-Item -LiteralPath $resolvedRepo -Recurse -Force
     }

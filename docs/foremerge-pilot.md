@@ -15,6 +15,8 @@ Examples of useful scopes: `contract:profile.evidence=modify`, `api:saveProfile=
 
 Use `docs/foremerge-pilot-log.csv` for actual parallel task pairs only. Mark each row `baseline` or `foremerge`. Add one row per pair when the PRs are reviewed. Link the intents and PRs, and record:
 
+Use exactly one `warning_result` value per row: `changed-plan` (an early warning changed the work), `false-alarm` (a warning needed no change), `missed-conflict` (a conflict was found later without a useful warning), or `no-warning` (no warning and no later conflict). Use `unknown` for a baseline row whose review history does not establish the result.
+
 - Whether a warning arrived before either agent edited code.
 - Whether it changed a plan, was a false alarm, or missed a later discovered conflict.
 - Minutes spent on Foremerge setup and coordination, based on actual task notes rather than a guess.
