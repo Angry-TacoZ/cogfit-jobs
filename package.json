@@ -33,6 +33,9 @@
   },
   "overrides": {
     "@xmldom/xmldom": "0.8.15",
-    "browserslist": "4.28.9"
+    "browserslist": "4.28.9",
+    "@grpc/grpc-js": "^1.14.5",
+    "basic-ftp": "^6.2.1",
+    "chokidar": "^4.0.3"
   }
 }
