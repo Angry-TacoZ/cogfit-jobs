@@ -28,7 +28,7 @@ function normalizeGreenhousePayload(company, payload) {
       location,
       remoteStatus: inferRemoteStatus(location, item.title),
       department,
-      description: htmlToText(item.content),
+      description: htmlToText(item.content, { decodeEncodedMarkup: true, entityDecodePasses: 2 }),
       applyUrl: item.absolute_url,
       sourceUrl: item.absolute_url,
       datePosted: item.updated_at

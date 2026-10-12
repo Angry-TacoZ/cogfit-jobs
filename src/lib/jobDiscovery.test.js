@@ -44,7 +44,7 @@ describe('job discovery adapters', () => {
       sourcePlatform: 'lever',
       externalJobId: 'lever-201',
       title: 'Business Systems Analyst',
-      remoteStatus: 'onsite',
+      remoteStatus: 'unknown',
       employmentType: 'Full-time',
       department: 'Internal Tools',
       applyUrl: 'https://jobs.lever.co/example/lever-201/apply'
@@ -95,6 +95,16 @@ describe('job discovery adapters', () => {
     });
   });
 
+  it('uses the Ashby posting URL as stable identity when the public payload has no id', () => {
+    const listing = { ...fixture('ashby.json').jobs[0] };
+    delete listing.id;
+    const normalized = normalizeAshbyPayload(company, { jobs: [listing] }).jobs[0];
+    const repeated = normalizeAshbyPayload(company, { jobs: [{ ...listing }] }).jobs[0];
+
+    expect(normalized.externalJobId).toBe('ashby-301');
+    expect(normalized.contentHash).toBe(repeated.contentHash);
+  });
+
   it.each([
     ['lever', 'hybrid'],
     ['lever', 'REMOTE'],
@@ -120,6 +130,17 @@ describe('job discovery text normalization', () => {
       .toBe('Role\nBuild & test systems.');
   });
 
+  it('converts Greenhouse entity-encoded markup without dropping literal angle-bracket text', () => {
+    const listing = {
+      ...fixture('greenhouse.json').jobs[0],
+      content: '&amp;lt;p&amp;gt;Build &amp;amp; test Queue&amp;lt;T&amp;gt; and compare x &amp;lt; y &amp;gt; z.&amp;lt;/p&amp;gt;&amp;lt;p&amp;gt;Second paragraph.&amp;lt;/p&amp;gt;&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;'
+    };
+    const normalized = normalizeGreenhousePayload(company, { jobs: [listing] }).jobs[0];
+
+    expect(normalized.description).toBe('Build & test Queue<T> and compare x < y > z.\nSecond paragraph.');
+    expect(normalized.description).not.toContain('alert');
+  });
+
   it('preserves escaped literal angle brackets while removing actual markup', () => {
     const result = htmlToText('<p>Maintain Queue&lt;T&gt; and compare x &lt; y &gt; z.</p><script>alert(1)</script>');
 
@@ -129,8 +150,11 @@ describe('job discovery text normalization', () => {
 
   it.each([
     ['Remote, United States', 'Engineer', 'remote'],
-    ['New York, NY', 'Hybrid Data Analyst', 'hybrid'],
-    ['Pittsburgh, PA', 'Systems Analyst', 'onsite'],
+    ['New York, NY (Hybrid)', 'Systems Analyst', 'hybrid'],
+    ['Seattle, WA', 'Remote Sensing Engineer', 'unknown'],
+    ['Seattle, WA', 'Hybrid Technology Engineer', 'unknown'],
+    ['Seattle, WA', 'Engineer - Remote', 'remote'],
+    ['Pittsburgh, PA', 'Systems Analyst', 'unknown'],
     ['Unknown', 'Systems Analyst', 'unknown'],
     ['Multiple locations', 'Systems Analyst', 'unknown']
   ])('infers %s as %s', (location, title, expected) => {
