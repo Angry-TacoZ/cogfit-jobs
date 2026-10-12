@@ -1,5 +1,5 @@
 const { createNormalizedJob } = require('../normalizedJob');
-const { inferRemoteStatus } = require('../text');
+const { htmlToText, inferRemoteStatus, normalizeWorkplaceType } = require('../text');
 const { AdapterError, normalizeCompany, normalizeListings } = require('./base');
 
 function leverEndpoint(companyIdentifier) {
@@ -22,16 +22,27 @@ function normalizeLeverPayload(company, payload) {
       : typeof categories.department === 'string' && categories.department.trim()
         ? categories.department
         : null;
-    const description = [item.descriptionPlain, item.additionalPlain]
+    const listSections = Array.isArray(item.lists)
+      ? item.lists.flatMap((list) => {
+        if (!list || typeof list !== 'object' || Array.isArray(list)) return [];
+        const heading = typeof list.text === 'string' ? list.text.trim() : '';
+        const content = htmlToText(list.content);
+        const section = [heading, content].filter(Boolean).join('\n');
+        return section ? [section] : [];
+      })
+      : [];
+    const description = [item.descriptionPlain, item.additionalPlain, ...listSections]
       .filter((part) => typeof part === 'string' && part.trim())
       .join('\n');
+    const remoteStatus = normalizeWorkplaceType(item.workplaceType)
+      || inferRemoteStatus(location, item.text);
     return createNormalizedJob({
       sourcePlatform: 'lever',
       ...normalizedCompany,
       externalJobId: item.id,
       title: item.text,
       location,
-      remoteStatus: inferRemoteStatus(location, item.text),
+      remoteStatus,
       employmentType: categories.commitment,
       department,
       description,
