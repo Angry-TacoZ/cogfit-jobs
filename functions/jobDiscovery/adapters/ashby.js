@@ -1,5 +1,5 @@
 const { createNormalizedJob } = require('../normalizedJob');
-const { htmlToText, inferRemoteStatus } = require('../text');
+const { htmlToText, inferRemoteStatus, normalizeWorkplaceType } = require('../text');
 const { AdapterError, normalizeCompany, normalizeListings } = require('./base');
 
 function ashbyEndpoint(companyIdentifier) {
@@ -14,13 +14,15 @@ function normalizeAshbyPayload(company, payload) {
   return normalizeListings(payload.jobs, (item) => {
     if (!item || typeof item !== 'object') throw new AdapterError('Listing must be an object');
     const location = typeof item.location === 'string' && item.location.trim() ? item.location : 'Unknown';
+    const remoteStatus = normalizeWorkplaceType(item.workplaceType)
+      || (item.isRemote === true ? 'remote' : inferRemoteStatus(location, item.title));
     return createNormalizedJob({
       sourcePlatform: 'ashby',
       ...normalizedCompany,
       externalJobId: item.id,
       title: item.title,
       location,
-      remoteStatus: item.isRemote === true ? 'remote' : inferRemoteStatus(location, item.title),
+      remoteStatus,
       employmentType: item.employmentType,
       department: item.department || item.team,
       description: typeof item.descriptionPlain === 'string' && item.descriptionPlain.trim()

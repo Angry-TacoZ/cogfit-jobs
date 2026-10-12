@@ -30,15 +30,24 @@ function decodeEntities(value) {
 
 function htmlToText(value) {
   if (typeof value !== 'string' || !value.trim()) return '';
-  return decodeEntities(value)
+  return value
     .replace(COMMENTS, '')
     .replace(SCRIPT_OR_STYLE, '')
     .replace(BLOCK_TAGS, '\n')
     .replace(TAGS, '')
+    .replace(/&(?:#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match) => decodeEntities(match))
     .split('\n')
     .map((line) => line.replace(/\s+/g, ' ').trim())
     .filter(Boolean)
     .join('\n');
+}
+
+function normalizeWorkplaceType(value) {
+  if (typeof value !== 'string') return null;
+  const workplaceType = value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+  if (['remote', 'hybrid', 'onsite'].includes(workplaceType)) return workplaceType;
+  if (['unknown', 'unspecified'].includes(workplaceType)) return 'unknown';
+  return null;
 }
 
 function inferRemoteStatus(location, title = '') {
@@ -52,4 +61,4 @@ function inferRemoteStatus(location, title = '') {
   return 'unknown';
 }
 
-module.exports = { htmlToText, inferRemoteStatus };
+module.exports = { htmlToText, inferRemoteStatus, normalizeWorkplaceType };

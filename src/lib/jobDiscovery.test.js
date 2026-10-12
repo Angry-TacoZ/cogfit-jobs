@@ -52,6 +52,33 @@ describe('job discovery adapters', () => {
     expect(result.jobs[0].description).toContain('Low direct customer contact.');
   });
 
+  it('retains Lever list headings and HTML content in the description and content hash', () => {
+    const listing = {
+      ...fixture('lever.json')[0],
+      lists: [{ text: 'Requirements', content: '<li>Five years of SQL</li><li>Daily phone support</li>' }]
+    };
+    const first = normalizeLeverPayload(company, [listing]).jobs[0];
+    const changed = normalizeLeverPayload(company, [{
+      ...listing,
+      lists: [{ text: 'Requirements', content: '<li>Ten years of SQL</li><li>Daily phone support</li>' }]
+    }]).jobs[0];
+
+    expect(first.description).toContain('Requirements\nFive years of SQL\nDaily phone support');
+    expect(first.contentHash).not.toBe(changed.contentHash);
+  });
+
+  it('isolates malformed optional Lever list sections', () => {
+    const listing = {
+      ...fixture('lever.json')[0],
+      lists: [null, 'bad section', { text: 'Requirements', content: '<li>Five years of SQL</li>' }]
+    };
+    const result = normalizeLeverPayload(company, [listing]);
+
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0].description).toContain('Five years of SQL');
+    expect(result.warnings).toHaveLength(0);
+  });
+
   it('normalizes an Ashby payload and honors its explicit remote flag', () => {
     const result = normalizeAshbyPayload(company, fixture('ashby.json'));
 
@@ -67,12 +94,37 @@ describe('job discovery adapters', () => {
       applyUrl: 'https://jobs.ashbyhq.com/example/ashby-301/application'
     });
   });
+
+  it.each([
+    ['lever', 'hybrid'],
+    ['lever', 'REMOTE'],
+    ['ashby', 'Hybrid'],
+    ['ashby', 'Remote']
+  ])('uses explicit %s workplace type %s ahead of location and fallback fields', (platform, workplaceType) => {
+    const remoteStatus = platform === 'lever'
+      ? normalizeLeverPayload(company, [{
+        ...fixture('lever.json')[0], text: 'Engineer', categories: { location: 'New York, NY' }, workplaceType
+      }]).jobs[0].remoteStatus
+      : normalizeAshbyPayload(company, { jobs: [{
+        ...fixture('ashby.json').jobs[0], title: 'Engineer', location: 'New York, NY',
+        isRemote: workplaceType.toLowerCase() === 'remote', workplaceType
+      }] }).jobs[0].remoteStatus;
+
+    expect(remoteStatus).toBe(workplaceType.toLowerCase());
+  });
 });
 
 describe('job discovery text normalization', () => {
   it('converts HTML into safe readable text without executing or retaining tags', () => {
     expect(htmlToText('<h2>Role</h2><p>Build &amp; test <em>systems</em>.</p><style>bad</style>'))
       .toBe('Role\nBuild & test systems.');
+  });
+
+  it('preserves escaped literal angle brackets while removing actual markup', () => {
+    const result = htmlToText('<p>Maintain Queue&lt;T&gt; and compare x &lt; y &gt; z.</p><script>alert(1)</script>');
+
+    expect(result).toBe('Maintain Queue<T> and compare x < y > z.');
+    expect(result).not.toContain('alert');
   });
 
   it.each([
