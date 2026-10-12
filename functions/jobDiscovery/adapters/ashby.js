@@ -6,6 +6,19 @@ function ashbyEndpoint(companyIdentifier) {
   return `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(companyIdentifier)}`;
 }
 
+function ashbyExternalJobId(item) {
+  if (item.id !== null && item.id !== undefined && String(item.id).trim()) return item.id;
+  if (typeof item.jobUrl !== 'string') return item.id;
+  try {
+    const url = new URL(item.jobUrl);
+    if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) return null;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    return pathParts.at(-1) || null;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeAshbyPayload(company, payload) {
   if (!payload || typeof payload !== 'object' || !Array.isArray(payload.jobs)) {
     throw new AdapterError('Ashby response did not contain a jobs list');
@@ -19,7 +32,7 @@ function normalizeAshbyPayload(company, payload) {
     return createNormalizedJob({
       sourcePlatform: 'ashby',
       ...normalizedCompany,
-      externalJobId: item.id,
+      externalJobId: ashbyExternalJobId(item),
       title: item.title,
       location,
       remoteStatus,
