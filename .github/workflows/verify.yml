@@ -70,7 +70,9 @@ jobs:
         run: npm run smoke:firestore
 
       - name: Audit application dependencies
-        run: npm audit --audit-level=high
+        # Only GHSA-vfj7-8cjw-p6xm in development tooling is excepted.
+        # See docs/dependency-audit-exceptions.md; all other high/critical findings fail.
+        run: npm run audit:ci
 
       - name: Audit function dependencies
         run: npm audit --prefix functions --audit-level=high
