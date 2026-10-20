@@ -69,9 +69,8 @@ jobs:
       - name: Run Firestore REST smoke test
         run: npm run smoke:firestore
 
-      - name: Audit application dependencies
-        # Only GHSA-vfj7-8cjw-p6xm in development tooling is excepted.
-        # See docs/dependency-audit-exceptions.md; all other high/critical findings fail.
+      - name: Audit root dependencies with audit-ci
+        # See docs/dependency-audit-exceptions.md; only its exact temporary path is allowed.
         run: npm run audit:ci
 
       - name: Audit function dependencies

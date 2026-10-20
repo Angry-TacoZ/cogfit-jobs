@@ -1,14 +1,18 @@
 # Temporary dependency audit exception
 
 - Advisory: [GHSA-vfj7-8cjw-p6xm / CVE-2026-93687](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
-- Package: `braces@3.0.3`; high-severity denial of service from deeply nested brace patterns. As checked on 2026-10-18, the advisory lists no patched version.
-- Scope: root development tooling only, currently `firebase-tools@15.34.0 -> chokidar@3.6.0 -> braces@3.0.3`. The gate follows npm's propagated findings to this exact advisory and requires every excepted package node to be development-only in the root lockfile.
-- Reason: Firebase Tools 15.34.0 still declares `chokidar: ^3.6.0`; its Functions emulator converts `functions.ignore` to glob patterns. Chokidar 4 removed glob support, so a forced major override changes the expected watcher behavior.
-- Boundary: these Braces instances are not dependencies of the deployed Functions package. Local emulator/CLI use remains exposed to malicious brace patterns; use trusted repository/configuration inputs. This exception accepts that limited tooling risk and does not fix the vulnerability.
+- Package: `braces@3.0.3`; high-severity denial of service from deeply nested brace patterns. As checked on 2026-10-20, the advisory lists no patched version.
+- Scope: root development tooling only: `firebase-tools@15.34.0 -> chokidar@3.6.0 -> braces@3.0.3`.
+- Reason: Firebase Tools 15.34.0 uses Chokidar 3 glob behavior for Functions emulator `functions.ignore` patterns. Chokidar 4 removes glob support, so forcing that major version changes watcher behavior.
+- Boundary: the affected package is not in the deployed Functions dependency tree. Local emulator/CLI use remains exposed to malicious brace patterns; use trusted repository and configuration inputs. The exception accepts this limited tooling risk; it does not fix the vulnerability.
 - Owner: James / CogFit Jobs maintainers. Proposed in PR #20; not yet merged.
-- Review by: 2026-11-06. The gate refuses the exception starting 2026-11-07 00:00 UTC.
-- Remove the exception when a compatible patched dependency path is available, when Firebase officially migrates its watcher semantics, or if Braces becomes a production dependency. A version other than 3.0.3, another advisory, or critical severity is not covered.
+- Expiration: 2026-11-07 00:00 UTC. `audit-ci` expires this exact advisory-path exception, and the local policy check independently rejects an expired or changed expiry.
+- Exception behavior: `audit-ci` allows only this GitHub advisory on the full dependency path. It fails for other high or critical findings and prints the allowed finding in the CI log. The policy check verifies the exact config and lockfile path, versions, edges, and development-only flags; it fails if Braces becomes a production dependency or the Firebase/Chokidar path changes.
+- Functions audit remains unfiltered: `npm audit --prefix functions --audit-level=high`.
+- Removal: this exception is not automatically removed when a compatible patch is published. A dependency update changing the pinned path/version makes the policy check fail; maintainers should then remove the allowlist and policy check and return to the unfiltered root audit. The expiry provides a hard stop even if no patch arrives.
 
-Root CI runs `npm run audit:ci`, retaining the existing high/critical threshold. It fails on all other high/critical advisories, malformed audit output, unresolved/cyclic audit references, and npm transport errors. Moderate findings remain outside the existing threshold. Functions CI still runs the unfiltered `npm audit --prefix functions --audit-level=high`.
+## Verification
 
-Sources: [Firebase Tools manifest](https://github.com/firebase/firebase-tools/blob/v15.34.0/package.json), [Functions watcher](https://github.com/firebase/firebase-tools/blob/v15.34.0/src/emulator/functionsEmulator.ts), [Chokidar upgrade notes](https://github.com/paulmillr/chokidar#upgrading).
+`npm run audit:ci` runs the small lockfile/config policy check, then IBM `audit-ci` 7.1.0 against the real root dependency tree. The audit still reports the permitted high finding; a passing result means only that this one documented exception and no other high/critical finding were present. It does not mean zero vulnerabilities.
+
+Sources: [audit-ci documentation](https://github.com/IBM/audit-ci), [Firebase Tools 15.34.0 manifest](https://github.com/firebase/firebase-tools/blob/v15.34.0/package.json), [Functions emulator watcher](https://github.com/firebase/firebase-tools/blob/v15.34.0/src/emulator/functionsEmulator.ts), [Chokidar upgrade notes](https://github.com/paulmillr/chokidar#upgrading).

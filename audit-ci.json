@@ -1,0 +1,13 @@
+{
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  "high": true,
+  "allowlist": [
+    {
+      "GHSA-vfj7-8cjw-p6xm|firebase-tools>chokidar>braces": {
+        "active": true,
+        "expiry": "2026-11-07T00:00:00Z",
+        "notes": "Temporary exception for firebase-tools 15.34.0 development tooling only."
+      }
+    }
+  ]
+}
