@@ -25,7 +25,7 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - PR #2 and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
 - PR #7 merged the resume evidence limit fix into `main` as `807cec7`. Hosting and all callable Functions were deployed from verified `main` commit `0da6397` on 2026-08-20. A signed-in resume replacement still needs a production retest before the original user report is considered fully closed.
 - Draft PR #12, `codex/fix-firestore-profile-save`, diagnoses a signed-in profile-save failure after resume import. Production logs show `generateProfile` returned 200, then `saveProfile` returned 500 because Firestore's gRPC metadata plugin rejected the runtime metadata response. The branch switches the Admin Firestore client to its supported REST transport, preserving existing authentication, App Check, validation, quota, and document behavior. Its GitHub Actions Verify run `33907809309` passed, including a Firestore emulator write/read/delete check.
-- Open PR #20, `codex/npm-audit-fixes`, replaces the custom root audit exception with IBM `audit-ci` 7.1.0 and a small lockfile/config guard. Its exact temporary Braces exception remains visible in the report and expires 2026-11-07 00:00 UTC; the raw root audit still reports that high advisory. The Functions audit is unfiltered and currently clean.
+- Open PR #20, `codex/npm-audit-fixes`, uses IBM `audit-ci` 7.1.0 with a narrow lockfile/config guard. The guard also checks npm's unfiltered report before audit-ci because audit-ci's path allowlist can suppress a critical reclassification of the allowed advisory. The exact temporary Braces exception remains visible and expires 2026-11-07 00:00 UTC; root still reports that high advisory. The Functions audit is unfiltered and currently clean.
 
 ## Decisions
 
@@ -79,6 +79,7 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - Root `npm run audit:ci` passed with the Braces advisory still reported; Functions `npm audit --prefix functions --audit-level=high` found zero vulnerabilities. A temporary installed dependency tree containing unrelated high and critical advisories failed audit-ci, as did an expired config applied to the actual root Braces path. An actual Firebase Tools 15.34.0 production dependency tree was rejected by the lockfile policy check.
 - Clean `npm ci` and `npm ci --prefix functions` installs passed. Local verification used Node 24.13.1 / npm 11.8.0; Functions install printed its declared Node 22 engine warning.
 - Direct root `npm audit --audit-level=high` still exits nonzero for three propagated reports of the one Braces advisory. This is an explicit time-limited acceptance in CI, not a zero-vulnerability result.
+- Independent review of PR #20 head `115f6f9` reproduced that audit-ci 7.1.0 accepts the allowed path if Braces is reported as critical. A raw-report precheck now rejects any critical finding before audit-ci runs. Replaying the review's captured npm report with only Braces reclassified to critical failed the new guard; lint, 14 files / 46 tests, build, smoke, secret scan, watcher regression, and the unfiltered Functions audit passed after the fix.
 
 ### Resume-first PR #1
 

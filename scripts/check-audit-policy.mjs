@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -32,10 +33,41 @@ export function validateAuditPolicy(lockfile, config, now = new Date()) {
   }
 }
 
+export function assertNoCriticalAuditFindings(report) {
+  const vulnerabilities = report?.vulnerabilities;
+  const criticalCount = report?.metadata?.vulnerabilities?.critical;
+  if (report?.auditReportVersion !== 2 || report.error ||
+      !vulnerabilities || typeof vulnerabilities !== 'object' || Array.isArray(vulnerabilities) ||
+      !Number.isInteger(criticalCount) ||
+      !Object.values(vulnerabilities).every((finding) => finding && Array.isArray(finding.via))) {
+    throw new Error('Missing or unsupported npm audit report');
+  }
+
+  const findings = Object.entries(vulnerabilities);
+  const reportedCritical = findings.filter(([, finding]) => finding.severity === 'critical').length;
+  const critical = findings.filter(([, finding]) => finding.severity === 'critical' ||
+    finding.via.some((cause) => typeof cause === 'object' && cause?.severity === 'critical'));
+  if (reportedCritical !== criticalCount || critical.length > 0) {
+    throw new Error(`Unexcepted critical audit finding(s): ${critical.map(([name]) => name).join(', ') || 'inconsistent report'}`);
+  }
+  return criticalCount;
+}
+
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   try {
     validateAuditPolicy(lock, policy);
     console.log(`Temporary high-severity exception configured: ${advisory} on firebase-tools>chokidar>braces through 2026-11-07T00:00:00Z; the finding remains visible in the audit report.`);
+
+    if (!process.env.npm_execpath) throw new Error('Run through npm run audit:ci');
+    const result = spawnSync(process.execPath, [process.env.npm_execpath, 'audit', '--json'], {
+      encoding: 'utf8',
+      maxBuffer: 16 * 1024 * 1024
+    });
+    if (result.error || result.signal || ![0, 1].includes(result.status)) {
+      throw new Error(`Unfiltered npm audit failed: ${result.error?.message || result.stderr || result.status}`);
+    }
+    assertNoCriticalAuditFindings(JSON.parse(result.stdout));
+    console.log('Unfiltered npm audit critical-severity check passed; the high Braces exception remains reported by audit-ci.');
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
