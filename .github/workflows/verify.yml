@@ -69,8 +69,9 @@ jobs:
       - name: Run Firestore REST smoke test
         run: npm run smoke:firestore
 
-      - name: Audit application dependencies
-        run: npm audit --audit-level=high
+      - name: Audit root dependencies with audit-ci
+        # See docs/dependency-audit-exceptions.md; only its exact temporary path is allowed.
+        run: npm run audit:ci
 
       - name: Audit function dependencies
         run: npm audit --prefix functions --audit-level=high
