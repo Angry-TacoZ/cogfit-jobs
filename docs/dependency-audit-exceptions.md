@@ -11,6 +11,13 @@
 - Functions audit remains unfiltered: `npm audit --prefix functions --audit-level=high`.
 - Removal: this exception is not automatically removed when a compatible patch is published. A dependency update changing the pinned path/version makes the policy check fail; maintainers should then remove the allowlist and policy check and return to the unfiltered root audit. The expiry provides a hard stop even if no patch arrives.
 
+## Security review on 2026-10-25
+
+- Vite: the repository's declared `vite` range allowed releases through 7.3.6. GitHub Advisory [GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm) describes a Windows-only command-injection issue in the local `launch-editor` middleware when an attacker can control the file argument. Vite 7.3.7 is the patched release; the root dependency now requires `^7.3.7`. The app is hosted from the generated `dist` directory, so this dev-server middleware is not part of the deployed browser bundle. This is a vulnerable local developer tool path, not evidence that the public site was exploitable.
+- The same audit found high findings in `body-parser`, `undici`, and `zod`, plus newly reported moderate Vitest findings. Lockfile updates resolve them with patched versions (`body-parser` 1.20.9 / 2.4.0, `undici` 6.29.1, `zod` 4.6.7, and Vitest 4.1.12). The Functions audit is now clean.
+- Five moderate package findings remain in the root raw audit, all through `firebase-tools@15.34.0`, which is root development tooling: `@opentelemetry/core` via Pub/Sub and `uuid` via Gaxios. They are not in the deployed Functions dependency tree or static Hosting output. npm's proposed automatic resolution downgrades Firebase Tools to 14.23.0, a major-version downgrade; this change therefore preserves Firebase Tools 15.34.0 and reports the remaining findings instead of applying a potentially breaking downgrade.
+- The Braces high advisory above remains the one explicitly permitted, narrowly scoped temporary exception. It has not been broadened or extended, and still expires 2026-11-07 00:00 UTC.
+
 ## Verification
 
 `npm run audit:ci` validates the lockfile/config, runs the raw npm audit to reject critical findings, then runs IBM `audit-ci` 7.1.0 against the real root dependency tree. The audit still reports the permitted high finding; a passing result means only that this one documented exception and no critical or other high finding were present. It does not mean zero vulnerabilities.

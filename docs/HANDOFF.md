@@ -1,6 +1,6 @@
 # CogFit Jobs handoff
 
-Last verified: 2026-10-20 (PR #20 dependency-audit status; other workstreams retain their recorded dates)
+Last verified: 2026-10-25 (dependency security monitoring branch; other workstreams retain their recorded dates)
 
 ## Goal
 
@@ -26,6 +26,7 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - PR #7 merged the resume evidence limit fix into `main` as `807cec7`. Hosting and all callable Functions were deployed from verified `main` commit `0da6397` on 2026-08-20. A signed-in resume replacement still needs a production retest before the original user report is considered fully closed.
 - Draft PR #12, `codex/fix-firestore-profile-save`, diagnoses a signed-in profile-save failure after resume import. Production logs show `generateProfile` returned 200, then `saveProfile` returned 500 because Firestore's gRPC metadata plugin rejected the runtime metadata response. The branch switches the Admin Firestore client to its supported REST transport, preserving existing authentication, App Check, validation, quota, and document behavior. Its GitHub Actions Verify run `33907809309` passed, including a Firestore emulator write/read/delete check.
 - Open PR #20, `codex/npm-audit-fixes`, uses IBM `audit-ci` 7.1.0 with a narrow lockfile/config guard. The guard also checks npm's unfiltered report before audit-ci because audit-ci's path allowlist can suppress a critical reclassification of the allowed advisory. The exact temporary Braces exception remains visible and expires 2026-11-07 00:00 UTC; root still reports that high advisory. The Functions audit is unfiltered and currently clean.
+- Active security work, `codex/vite-security-monitoring`, is based on `main` at `b3c6193`. It updates Vite and vulnerable compatible transitive packages, adds separate weekly Dependabot monitoring for root npm, Functions npm, and GitHub Actions, and schedules the existing verification workflow weekly. Five moderate raw root-audit findings remain in the Firebase Tools development toolchain; npm's available fix requires a major Firebase Tools downgrade. The exact Braces exception remains unchanged. This branch and its PR are not merged or deployed.
 
 ## Decisions
 
