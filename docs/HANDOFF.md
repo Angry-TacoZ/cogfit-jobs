@@ -1,6 +1,6 @@
 # CogFit Jobs handoff
 
-Last verified: 2026-10-20 (PR #20 dependency-audit status; other workstreams retain their recorded dates)
+Last verified: 2026-10-25 (dependency security monitoring branch; other workstreams retain their recorded dates)
 
 ## Goal
 
@@ -25,7 +25,8 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - PR #2 and progressive onboarding are not treated as deployed behavior until they merge and are deployed from a reviewed source state.
 - PR #7 merged the resume evidence limit fix into `main` as `807cec7`. Hosting and all callable Functions were deployed from verified `main` commit `0da6397` on 2026-08-20. A signed-in resume replacement still needs a production retest before the original user report is considered fully closed.
 - Draft PR #12, `codex/fix-firestore-profile-save`, diagnoses a signed-in profile-save failure after resume import. Production logs show `generateProfile` returned 200, then `saveProfile` returned 500 because Firestore's gRPC metadata plugin rejected the runtime metadata response. The branch switches the Admin Firestore client to its supported REST transport, preserving existing authentication, App Check, validation, quota, and document behavior. Its GitHub Actions Verify run `33907809309` passed, including a Firestore emulator write/read/delete check.
-- Open PR #20, `codex/npm-audit-fixes`, uses IBM `audit-ci` 7.1.0 with a narrow lockfile/config guard. The guard also checks npm's unfiltered report before audit-ci because audit-ci's path allowlist can suppress a critical reclassification of the allowed advisory. The exact temporary Braces exception remains visible and expires 2026-11-07 00:00 UTC; root still reports that high advisory. The Functions audit is unfiltered and currently clean.
+- PR #20, `codex/npm-audit-fixes`, merged on 2026-10-21 as `f09f103`. Its temporary Braces exception was based on GHSA-vfj7-8cjw-p6xm, which GitHub withdrew on 2026-10-23 as not practically exploitable. The current raw root audit reports five moderate and zero high/critical findings. Active PR #21 removes the obsolete exception and expiry guard while retaining audit-ci's high threshold without an allowlist; the Functions audit remains unfiltered and clean.
+- Active security work, `codex/vite-security-monitoring`, is based on `main` at `b3c6193`. It updates Vite and vulnerable compatible transitive packages, adds separate weekly Dependabot monitoring for root npm, Functions npm, and GitHub Actions, and schedules the existing verification workflow weekly. Five moderate raw root-audit findings remain in the Firebase Tools development toolchain; npm's available fix requires a major Firebase Tools downgrade. This branch and its PR are not merged or deployed.
 
 ## Decisions
 
@@ -74,6 +75,8 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 ## Verification
 
 ### Dependency audit PR #20
+
+The October 20 checks below describe PR #20 at that time. On October 25, GitHub's withdrawal of the Braces advisory was confirmed, and PR #21 began removing the now-unused exception and expiry guard.
 
 - On 2026-10-20, the canonical verifier passed lint, 14 test files / 44 tests, and build. Browser smoke, Firestore emulator smoke, public secret scan, and the focused Firebase ignore watcher regression also passed.
 - Root `npm run audit:ci` passed with the Braces advisory still reported; Functions `npm audit --prefix functions --audit-level=high` found zero vulnerabilities. A temporary installed dependency tree containing unrelated high and critical advisories failed audit-ci, as did an expired config applied to the actual root Braces path. An actual Firebase Tools 15.34.0 production dependency tree was rejected by the lockfile policy check.
