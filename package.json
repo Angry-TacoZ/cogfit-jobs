@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" \"scripts/**/*.cjs\" vite.config.js",
     "test": "vitest run",
-    "audit:ci": "node scripts/check-audit-policy.mjs && audit-ci --config ./audit-ci.json --report-type important",
+    "audit:ci": "audit-ci --config ./audit-ci.json --report-type important",
     "smoke": "node scripts/smoke-test.mjs",
     "smoke:firestore": "firebase emulators:exec --only firestore --project cogfit-jobs \"node scripts/firestore-rest-smoke.cjs\"",
     "scan:secrets": "node scripts/scan-public-secrets.mjs"

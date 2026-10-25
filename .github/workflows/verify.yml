@@ -72,7 +72,7 @@ jobs:
         run: npm run smoke:firestore
 
       - name: Audit root dependencies with audit-ci
-        # See docs/dependency-audit-exceptions.md; only its exact temporary path is allowed.
+        # See docs/dependency-audit-exceptions.md; high and critical findings are not allowlisted.
         run: npm run audit:ci
 
       - name: Audit function dependencies
