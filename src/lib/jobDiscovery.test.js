@@ -29,10 +29,19 @@ describe('job discovery adapters', () => {
       location: 'Remote - US',
       remoteStatus: 'remote',
       department: 'Operations',
+      datePosted: '2026-06-12T09:30:00.000Z',
       applyUrl: 'https://boards.greenhouse.io/example/jobs/101'
     });
     expect(result.jobs[0].description).toBe('Build workflow automation and documentation.');
     expect(result.jobs[0].description).not.toContain('alert');
+  });
+
+  it('does not treat a Greenhouse update timestamp as the original posting date', () => {
+    const listing = { ...fixture('greenhouse.json').jobs[0] };
+    delete listing.first_published;
+    const result = normalizeGreenhousePayload(company, { jobs: [listing] });
+
+    expect(result.jobs[0].datePosted).toBeNull();
   });
 
   it('normalizes a Lever payload and preserves the ATS apply destination', () => {
@@ -47,6 +56,7 @@ describe('job discovery adapters', () => {
       remoteStatus: 'unknown',
       employmentType: 'Full-time',
       department: 'Internal Tools',
+      datePosted: '2026-07-10T12:00:00.000Z',
       applyUrl: 'https://jobs.lever.co/example/lever-201/apply'
     });
     expect(result.jobs[0].description).toContain('Low direct customer contact.');
@@ -91,6 +101,7 @@ describe('job discovery adapters', () => {
       remoteStatus: 'remote',
       employmentType: 'FullTime',
       department: 'Responsible AI',
+      datePosted: '2026-07-09T15:30:00.000Z',
       applyUrl: 'https://jobs.ashbyhq.com/example/ashby-301/application'
     });
   });

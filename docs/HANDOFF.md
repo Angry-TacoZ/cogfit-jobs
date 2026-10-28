@@ -1,6 +1,6 @@
 # CogFit Jobs handoff
 
-Last verified: 2026-10-25 (PR #21 merged to main as `b53ee12`; other workstreams retain their recorded dates)
+Last verified: 2026-10-28 (PR #13 local verification; other workstreams retain their recorded dates)
 
 ## Goal
 
@@ -26,7 +26,8 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - PR #7 merged the resume evidence limit fix into `main` as `807cec7`. Hosting and all callable Functions were deployed from verified `main` commit `0da6397` on 2026-08-20. A signed-in resume replacement still needs a production retest before the original user report is considered fully closed.
 - Draft PR #12, `codex/fix-firestore-profile-save`, diagnoses a signed-in profile-save failure after resume import. Production logs show `generateProfile` returned 200, then `saveProfile` returned 500 because Firestore's gRPC metadata plugin rejected the runtime metadata response. The branch switches the Admin Firestore client to its supported REST transport, preserving existing authentication, App Check, validation, quota, and document behavior. Its GitHub Actions Verify run `33907809309` passed, including a Firestore emulator write/read/delete check.
 - PR #20, `codex/npm-audit-fixes`, merged on 2026-10-21 as `f09f103`. Its temporary Braces exception was based on GHSA-vfj7-8cjw-p6xm, which GitHub withdrew on 2026-10-23 as not practically exploitable. PR #21 removed that obsolete exception while retaining audit-ci's high threshold without an allowlist.
-- Security and monitoring PR #21, `codex/vite-security-monitoring`, merged into `main` on 2026-10-25 as `b53ee12`. It updates Vite and compatible dependencies, configures weekly Dependabot monitoring for root npm, Functions npm, and GitHub Actions, and schedules the existing verification workflow. GitHub Dependabot alerts and security updates are enabled. The raw root audit has five moderate findings remaining in Firebase CLI development tooling; npm's suggested automatic fix requires a major Firebase Tools downgrade. The Functions audit is clean. Dependabot PRs #22, #23, and #24 were closed as superseded after their exact updates landed in `main`.
+- Security and monitoring PR #21, `codex/vite-security-monitoring`, merged into `main` on 2026-10-25 as `b53ee12`. It updates Vite and compatible dependencies, configures weekly Dependabot monitoring for root npm, Functions npm, and GitHub Actions, and schedules the existing verification workflow. GitHub Dependabot alerts and security updates are enabled. The raw root audit has five moderate findings remaining in Firebase CLI development tooling; npm's suggested automatic fix requires a major Firebase Tools downgrade. The Functions tree has one moderate `qs` advisory; the high-severity CI threshold passes. Dependabot PRs #22, #23, and #24 were closed as superseded after their exact updates landed in `main`.
+- Draft PR #13, `codex/add-job-discovery-domain`, is rebased onto current `main` at `19b87c2`. It preserves ATS-specific posting-date semantics: Greenhouse `first_published`, Lever `createdAt`, and Ashby `publishedAt` (last published). Local canonical verification and `audit:ci` pass on the revised worktree; GitHub Actions for the new head remains pending.
 
 ## Decisions
 

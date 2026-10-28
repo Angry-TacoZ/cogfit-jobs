@@ -31,7 +31,7 @@ function normalizeGreenhousePayload(company, payload) {
       description: htmlToText(item.content, { decodeEncodedMarkup: true, entityDecodePasses: 2 }),
       applyUrl: item.absolute_url,
       sourceUrl: item.absolute_url,
-      datePosted: item.updated_at
+      datePosted: item.first_published
     });
   });
 }
