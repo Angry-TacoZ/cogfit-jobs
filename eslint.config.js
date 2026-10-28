@@ -1,5 +1,7 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import svelte from 'eslint-plugin-svelte';
+import svelteConfig from './svelte.config.js';
 
 export default [
   {
@@ -11,6 +13,16 @@ export default [
     ]
   },
   js.configs.recommended,
+  ...svelte.configs.recommended,
+  {
+    files: ['src/**/*.svelte'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.es2024 },
+      parserOptions: { svelteConfig }
+    },
+    // Existing lists intentionally use unkeyed rendering; their items may repeat.
+    rules: { 'svelte/require-each-key': 'off' }
+  },
   {
     files: ['src/**/*.js', 'vite.config.js', 'svelte.config.js'],
     languageOptions: {

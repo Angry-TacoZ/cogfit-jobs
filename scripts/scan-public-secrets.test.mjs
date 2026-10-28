@@ -6,10 +6,10 @@ import { formatFindings, scanPaths } from './scan-public-secrets.mjs';
 
 const temporaryDirectories = [];
 
-async function createFixture(content) {
+async function createFixture(content, filename = 'fixture.js') {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'cogfit-secret-scan-'));
   temporaryDirectories.push(directory);
-  await writeFile(path.join(directory, 'fixture.js'), content, 'utf8');
+  await writeFile(path.join(directory, filename), content, 'utf8');
   return directory;
 }
 
@@ -44,5 +44,18 @@ describe('public secret scanner', () => {
     ]);
     expect(output).toContain('fixture.js:1 Google API key');
     expect(output).not.toContain(exposedKey);
+  });
+
+  it('scans credentials in Svelte source, including code absent from the build', async () => {
+    const exposedKey = `AIza${'A'.repeat(30)}`;
+    const directory = await createFixture(
+      `<!-- ${exposedKey} -->\n`, 'Fixture.svelte'
+    );
+
+    const findings = await scanPaths(['.'], directory);
+    expect(findings).toEqual([
+      { file: 'Fixture.svelte', line: 1, type: 'Google API key' }
+    ]);
+    expect(formatFindings(findings)).not.toContain(exposedKey);
   });
 });

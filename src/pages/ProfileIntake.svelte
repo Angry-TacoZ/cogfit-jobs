@@ -27,7 +27,7 @@
   import { saveCloudProfile } from '../lib/firebaseClient';
 
   const calibrationQuestionIds = ['q3', 'q8', 'q9', 'q13', 'q14', 'q17', 'q21', 'q24'];
-  $: calibrationQuestions = profileSections.flatMap((section) => section.questions)
+  const calibrationQuestions = profileSections.flatMap((section) => section.questions)
     .filter(([id]) => calibrationQuestionIds.includes(id));
 
   export let go;

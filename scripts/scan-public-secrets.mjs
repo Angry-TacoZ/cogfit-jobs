@@ -21,6 +21,7 @@ const TEXT_EXTENSIONS = new Set([
   '.json',
   '.md',
   '.mjs',
+  '.svelte',
   '.toml',
   '.ts',
   '.tsx',
