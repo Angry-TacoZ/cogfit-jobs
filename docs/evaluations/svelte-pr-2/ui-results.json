@@ -1,0 +1,74 @@
+[
+  {
+    "label": "base",
+    "name": "intake navigation",
+    "pass": true
+  },
+  {
+    "label": "base",
+    "name": "local sample profile generation",
+    "pass": true
+  },
+  {
+    "label": "base",
+    "name": "resume replacement",
+    "pass": true
+  },
+  {
+    "label": "base",
+    "name": "sample results feedback export",
+    "pass": true
+  },
+  {
+    "label": "base",
+    "name": "history",
+    "pass": true
+  },
+  {
+    "label": "base",
+    "name": "mobile auth and static routes",
+    "pass": true
+  },
+  {
+    "label": "base",
+    "name": "page errors",
+    "pass": true,
+    "errors": []
+  },
+  {
+    "label": "head",
+    "name": "intake navigation",
+    "pass": true
+  },
+  {
+    "label": "head",
+    "name": "local sample profile generation",
+    "pass": true
+  },
+  {
+    "label": "head",
+    "name": "resume replacement",
+    "pass": true
+  },
+  {
+    "label": "head",
+    "name": "sample results feedback export",
+    "pass": true
+  },
+  {
+    "label": "head",
+    "name": "history",
+    "pass": true
+  },
+  {
+    "label": "head",
+    "name": "mobile auth and static routes",
+    "pass": true
+  },
+  {
+    "label": "head",
+    "name": "page errors",
+    "pass": true,
+    "errors": []
+  }
+]

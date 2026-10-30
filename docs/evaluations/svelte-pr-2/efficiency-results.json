@@ -1,0 +1,20 @@
+{
+  "baseSha": "19b87c2f7dea3e0313b92a55028e92833cedd37a",
+  "headSha": "618ff883eb1339ed766221d3f0aee79deca0b29c",
+  "node": "24.13.1",
+  "npm": "11.8.0",
+  "vite": "7.3.7",
+  "base": {
+    "entryGzip": 121221,
+    "docxRaw": 304663,
+    "entryRaw": 386546,
+    "docxGzip": 93021
+  },
+  "candidate": {
+    "entryGzip": 84456,
+    "docxRaw": 304835,
+    "entryRaw": 253334,
+    "docxGzip": 93068
+  },
+  "runtimeSpeedMeasured": false
+}

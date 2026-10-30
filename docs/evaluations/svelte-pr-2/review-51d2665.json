@@ -1,0 +1,19 @@
+{
+  "confirmedFindings": [],
+  "verificationCommands": [
+    "git diff --check 19b87c2f7dea3e0313b92a55028e92833cedd37a 51d2665581cc98c7cc7f19dd0f140d85019d1142 (passed)",
+    "gh run view 40637073243 --repo Angry-TacoZ/cogfit-jobs --json status,conclusion,headSha,jobs (completed successfully at exact head)",
+    "docker info --format (exit 1, Docker engine unavailable)",
+    "gh pr view 2 --repo Angry-TacoZ/cogfit-jobs --json baseRefOid,headRefOid,state (matching)"
+  ],
+  "verdict": "BLOCKED",
+  "verificationPassed": true,
+  "acceptanceComplete": false,
+  "limitations": [
+    "No isolated local execution or independent browser parity verification: Docker engine unavailable and reviewer policy requires isolation for untrusted PR execution.",
+    "Full functionality preservation and claimed bundle sizes were not independently measured.",
+    "Authenticated Firebase, DOCX, clipboard and paid model paths not exercised."
+  ],
+  "baseSha": "19b87c2f7dea3e0313b92a55028e92833cedd37a",
+  "headSha": "51d2665581cc98c7cc7f19dd0f140d85019d1142"
+}
