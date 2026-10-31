@@ -19,18 +19,18 @@
     "firebase": "^12.13.0",
     "lucide-react": "^0.468.0",
     "mammoth": "^1.12.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "vite": "^7.3.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "audit-ci": "7.1.0",
-    "eslint": "^10.6.0",
+    "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "firebase-tools": "15.34.0",
-    "globals": "^17.7.0",
-    "playwright": "^1.60.0",
+    "firebase-tools": "15.34.1",
+    "globals": "^17.13.0",
+    "playwright": "^1.64.1",
     "vitest": "^4.1.12"
   },
   "overrides": {
