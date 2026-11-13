@@ -8,6 +8,16 @@ Live profile generation and job evaluation run through Firebase callable Cloud F
 
 See [`docs/HANDOFF.md`](docs/HANDOFF.md) for the current repository state, durable decisions, active branches, verification, and known blockers.
 
+## Svelte migration experiment
+
+[PR #2](https://github.com/Angry-TacoZ/cogfit-jobs/pull/2) explored replacing the React frontend with Svelte while preserving the existing workflows. The experiment was not merged; its source remains available in the PR and its [last commit](https://github.com/Angry-TacoZ/cogfit-jobs/commit/51d2665581cc98c7cc7f19dd0f140d85019d1142).
+
+An independent comparison on October 28, 2026 used React base `19b87c2` and the earlier Svelte revision `618ff88` with Node 24.13.1, npm 11.8.0, and Vite 7.3.7. The entry JavaScript bundle decreased from 386,546 to 253,334 bytes uncompressed (34.46%) and from 121,221 to 84,456 bytes gzipped (30.33%). Seven fixed local UI cases passed for each version (14/14 checks). The [bundle measurements](docs/evaluations/svelte-pr-2/efficiency-results.json) and [individual UI results](docs/evaluations/svelte-pr-2/ui-results.json) are preserved in this repository.
+
+Those figures measure delivered JavaScript size, not runtime speed, memory, or API cost. Live signed-in Firebase, App Check, paid model calls, real DOCX import, and clipboard permissions were not exercised. The comparison applies to `618ff88`, not the final PR commit. The final revision `51d2665` added Svelte-specific linting and source secret scanning and passed [CI](https://github.com/Angry-TacoZ/cogfit-jobs/actions/runs/40637073243); its [independent review](docs/evaluations/svelte-pr-2/review-51d2665.json) was blocked because the isolated local execution environment was unavailable, so parity and bundle figures were not independently remeasured for that revision. Neither review establishes full production readiness.
+
+The [comparison script](docs/evaluations/svelte-pr-2/compare-ui.mjs) preserves the earlier UI cases, with its original machine-specific checkout paths replaced by two arguments and its output placed in a unique temporary directory. To reproduce on Windows, prepare separate checkouts of base `19b87c2` and candidate `618ff88`, run `npm ci` and `npm run build` in each, install Playwright Chromium, then run `node docs/evaluations/svelte-pr-2/compare-ui.mjs <absolute-base-path> <absolute-candidate-path>`. It uses local ports 43991 and 43992 and prints its evidence directory. Inspect the resulting JSON for individual pass/fail outcomes.
+
 ## Local setup
 
 ```powershell
