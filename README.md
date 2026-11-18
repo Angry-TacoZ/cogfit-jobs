@@ -20,6 +20,8 @@ The [comparison script](docs/evaluations/svelte-pr-2/compare-ui.mjs) preserves t
 
 ## Local setup
 
+Use Node.js 24.12 or later for the web app. Firebase Functions use Node.js 22.
+
 ```powershell
 npm install
 npm run dev

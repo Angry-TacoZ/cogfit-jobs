@@ -30,14 +30,22 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
+      - name: Set up the Functions runtime
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            functions/package-lock.json
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install function dependencies
+        run: npm ci --prefix functions
+
+      - name: Set up Node.js for the Firebase web SDK
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Set up Java for Firestore emulator
         uses: actions/setup-java@v6
@@ -47,9 +55,6 @@ jobs:
 
       - name: Install application dependencies
         run: npm ci
-
-      - name: Install function dependencies
-        run: npm ci --prefix functions
 
       - name: Lint
         run: npm run lint
@@ -69,12 +74,17 @@ jobs:
       - name: Run browser smoke test
         run: npm run smoke
 
+      - name: Restore the Functions runtime for the Firestore smoke test
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
       - name: Run Firestore REST smoke test
         run: npm run smoke:firestore
+
+      - name: Audit function dependencies
+        run: npm audit --prefix functions --audit-level=high
 
       - name: Audit root dependencies with audit-ci
         # See docs/dependency-audit-exceptions.md; high and critical findings are not allowlisted.
         run: npm run audit:ci
-
-      - name: Audit function dependencies
-        run: npm audit --prefix functions --audit-level=high
