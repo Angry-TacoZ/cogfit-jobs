@@ -6,7 +6,7 @@ Live profile generation and job evaluation run through Firebase callable Cloud F
 
 ## Project status
 
-See [`docs/HANDOFF.md`](docs/HANDOFF.md) for the current repository state, durable decisions, active branches, verification, and known blockers.
+The application is a prototype. Consult the current source, configuration, tests, GitHub pull requests, and [verification workflow](.github/workflows/verify.yml) for its current state. The [dependency audit notes](docs/dependency-audit-exceptions.md) record dated reviews; rerun the audits to check current advisories.
 
 ## Svelte migration experiment
 
@@ -89,7 +89,7 @@ Hosting uses `dist` as the public directory and rewrites SPA routes to `index.ht
 Before deploying a public web artifact from this workspace, run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File C:\Users\angry\.codex\sessions\scripts\predeploy-secret-scan.ps1 -Path C:\Users\angry\.codex\sessions\cogfit-jobs
+powershell -ExecutionPolicy Bypass -File C:\Users\angry\.codex\sessions\scripts\predeploy-secret-scan.ps1 -Path (Get-Location).Path
 ```
 
 Do not deploy if the scan reports browser-exposed secrets or direct browser calls to paid model APIs.

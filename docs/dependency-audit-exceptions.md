@@ -1,9 +1,15 @@
 # Dependency audit status
 
+## Audit snapshot on 2026-11-12
+
+Against the main-branch lockfiles, `npm audit --package-lock-only` reported 20 moderate package findings in the root dependency tree and no high or critical findings. The Functions lockfile reported one low and one moderate package finding, with no high or critical findings. Counts can include packages affected through dependency chains and can change as advisories or lockfiles change. Run the audits again for current results.
+
+The review below records the state on 2026-10-25. Its vulnerability counts and fixed or unresolved labels are historical, not a current security assessment.
+
 ## Braces advisory review on 2026-10-25
 
 - GitHub withdrew [GHSA-vfj7-8cjw-p6xm / CVE-2026-93687](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) on 2026-10-23, stating the issue was not practically exploitable. The original claim was high-severity stack exhaustion from deeply nested patterns in `braces@3.0.3`.
-- `braces@3.0.3` remains in the root development-only dependency path `firebase-tools@15.34.0 -> chokidar@3.6.0 -> braces@3.0.3`. It is not in the Functions dependency tree. The current raw root audit reports five moderate findings and zero high or critical findings; `audit-ci` passes and warns that the old exception is unused.
+- `braces@3.0.3` remained in the root development-only dependency path `firebase-tools@15.34.0 -> chokidar@3.6.0 -> braces@3.0.3`. It was not in the Functions dependency tree. At that time, the raw root audit reported five moderate findings and zero high or critical findings; `audit-ci` passed and warned that the old exception was unused.
 - The former advisory allowlist and its exact-path/expiry checker have been removed. `audit-ci.json` retains `high: true` with no allowlist, so high and critical findings fail through the normal audit-ci threshold. There is no November 7 expiry that can stop CI for this withdrawn advisory.
 
 ## Other findings reviewed
