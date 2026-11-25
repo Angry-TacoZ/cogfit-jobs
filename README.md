@@ -1,28 +1,25 @@
 # CogFit Jobs
 
+**[Open the live demo](https://cogfit-jobs.web.app/)**
+
 CogFit Jobs is a public-facing React and Vite prototype for profile-based job-fit analysis. It helps nontraditional candidates compare a job ad against work style, evidence, constraints, cognitive fit, and likely day-to-day role demands.
 
 Live profile generation and job evaluation run through Firebase callable Cloud Functions. The browser never receives the Gemini API key. Profile answers, generated profiles, evaluations, and feedback are cached in `localStorage` and saved to Firestore under the signed-in user's account.
+
+## Live demo & access modes
+
+- **Signed-out sample workflow (`deterministic` / sample):** Visitors can inspect the interactive job-fit workflow and scored sample report at [`https://cogfit-jobs.web.app/`](https://cogfit-jobs.web.app/) without signing in or invoking paid model APIs.
+- **Authenticated live evaluation (`authenticated`):** Signed-in non-anonymous users with valid Firebase App Check tokens (reCAPTCHA Enterprise) invoke server-side Gemini callable Functions bounded by source-default daily quotas (`5` calls/user, `50` global).
 
 ## Project status
 
 The application is a prototype. Consult the current source, configuration, tests, GitHub pull requests, and [verification workflow](.github/workflows/verify.yml) for its current state. The [dependency audit notes](docs/dependency-audit-exceptions.md) record dated reviews; rerun the audits to check current advisories.
 
-## Svelte migration experiment
-
-[PR #2](https://github.com/Angry-TacoZ/cogfit-jobs/pull/2) explored replacing the React frontend with Svelte while preserving the existing workflows. The experiment was not merged; its source remains available in the PR and its [last commit](https://github.com/Angry-TacoZ/cogfit-jobs/commit/51d2665581cc98c7cc7f19dd0f140d85019d1142).
-
-An independent comparison on October 28, 2026 used React base `19b87c2` and the earlier Svelte revision `618ff88` with Node 24.13.1, npm 11.8.0, and Vite 7.3.7. The entry JavaScript bundle decreased from 386,546 to 253,334 bytes uncompressed (34.46%) and from 121,221 to 84,456 bytes gzipped (30.33%). Seven fixed local UI cases passed for each version (14/14 checks). The [bundle measurements](docs/evaluations/svelte-pr-2/efficiency-results.json) and [individual UI results](docs/evaluations/svelte-pr-2/ui-results.json) are preserved in this repository.
-
-Those figures measure delivered JavaScript size, not runtime speed, memory, or API cost. Live signed-in Firebase, App Check, paid model calls, real DOCX import, and clipboard permissions were not exercised. The comparison applies to `618ff88`, not the final PR commit. The final revision `51d2665` added Svelte-specific linting and source secret scanning and passed [CI](https://github.com/Angry-TacoZ/cogfit-jobs/actions/runs/40637073243); its [independent review](docs/evaluations/svelte-pr-2/review-51d2665.json) was blocked because the isolated local execution environment was unavailable, so parity and bundle figures were not independently remeasured for that revision. Neither review establishes full production readiness.
-
-The [comparison script](docs/evaluations/svelte-pr-2/compare-ui.mjs) preserves the earlier UI cases, with its original machine-specific checkout paths replaced by two arguments and its output placed in a unique temporary directory. To reproduce on Windows, prepare separate checkouts of base `19b87c2` and candidate `618ff88`, run `npm ci` and `npm run build` in each, install Playwright Chromium, then run `node docs/evaluations/svelte-pr-2/compare-ui.mjs <absolute-base-path> <absolute-candidate-path>`. It uses local ports 43991 and 43992 and prints its evidence directory. Inspect the resulting JSON for individual pass/fail outcomes.
-
 ## Local setup
 
 Use Node.js 24.12 or later for the web app. Firebase Functions use Node.js 22.
 
-```powershell
+```bash
 npm install
 npm run dev
 ```
@@ -31,7 +28,7 @@ Open the local Vite URL shown in the terminal. Live profile generation and job e
 
 ## Build
 
-```powershell
+```bash
 npm run build
 ```
 
@@ -45,7 +42,7 @@ Do not put paid model API keys in frontend variables such as `VITE_*`. The `VITE
 
 Set the Gemini key as a Firebase Functions secret:
 
-```powershell
+```bash
 firebase functions:secrets:set GEMINI_API_KEY --project cogfit-jobs
 ```
 
@@ -70,8 +67,8 @@ The callable function also enforces:
 - `maxInstances: 1`
 - 60 second timeout
 - 256 MiB memory
-- daily per-user quota, default 5 live Gemini calls per user
-- daily global quota, default 50 live Gemini calls across non-admin users
+- daily per-user quota, source default `5` live Gemini calls per user (`USER_DAILY_EVALUATION_LIMIT`)
+- daily global quota, source default `50` live Gemini calls across non-admin users (`GLOBAL_DAILY_EVALUATION_LIMIT`)
 - request size limits
 - model output token cap
 
@@ -81,7 +78,7 @@ Admin users can be exempted from the live Gemini quota checks by either setting 
 
 This structure is compatible with Firebase Hosting. A typical setup is:
 
-```powershell
+```bash
 npm run build
 firebase deploy --only hosting,functions --project cogfit-jobs
 ```
@@ -91,10 +88,10 @@ Hosting uses `dist` as the public directory and rewrites SPA routes to `index.ht
 Before deploying a public web artifact from this workspace, run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File C:\Users\angry\.codex\sessions\scripts\predeploy-secret-scan.ps1 -Path (Get-Location).Path
+powershell -ExecutionPolicy Bypass -File <path-to-predeploy-secret-scan.ps1> -Path (Get-Location).Path
 ```
 
-Do not deploy if the scan reports browser-exposed secrets or direct browser calls to paid model APIs.
+On macOS or Linux, run an equivalent secret scan (or `npm run scan:secrets`) covering source and built `dist/` assets. Do not deploy if the scan reports browser-exposed secrets or direct browser calls to paid model APIs.
 
 ## Prototype boundaries
 
@@ -105,3 +102,13 @@ Do not deploy if the scan reports browser-exposed secrets or direct browser call
 - If evidence is missing, confidence is lowered and the report names what is missing.
 - Login protects the live API path and profile-scoped Firestore storage.
 - Firestore stores data under `/users/{uid}/profiles/{profileId}` with evaluations under `/users/{uid}/profiles/{profileId}/evaluations/{evaluationId}`.
+
+## Historical note: Svelte migration experiment
+
+[PR #2](https://github.com/Angry-TacoZ/cogfit-jobs/pull/2) explored replacing the React frontend with Svelte while preserving the existing workflows. The experiment was not merged; its source remains available in the PR and its [last commit](https://github.com/Angry-TacoZ/cogfit-jobs/commit/51d2665581cc98c7cc7f19dd0f140d85019d1142).
+
+An independent comparison on October 28, 2026 used React base `19b87c2` and the earlier Svelte revision `618ff88` with Node 24.13.1, npm 11.8.0, and Vite 7.3.7. The entry JavaScript bundle decreased from 386,546 to 253,334 bytes uncompressed (34.46%) and from 121,221 to 84,456 bytes gzipped (30.33%). Seven fixed local UI cases passed for each version (14/14 checks). The [bundle measurements](docs/evaluations/svelte-pr-2/efficiency-results.json) and [individual UI results](docs/evaluations/svelte-pr-2/ui-results.json) are preserved in this repository.
+
+Those figures measure delivered JavaScript size, not runtime speed, memory, or API cost. Live signed-in Firebase, App Check, paid model calls, real DOCX import, and clipboard permissions were not exercised. The comparison applies to `618ff88`, not the final PR commit. The final revision `51d2665` added Svelte-specific linting and source secret scanning and passed [CI](https://github.com/Angry-TacoZ/cogfit-jobs/actions/runs/40637073243); its [independent review](docs/evaluations/svelte-pr-2/review-51d2665.json) was blocked because the isolated local execution environment was unavailable, so parity and bundle figures were not independently remeasured for that revision. Neither review establishes full production readiness.
+
+The [comparison script](docs/evaluations/svelte-pr-2/compare-ui.mjs) preserves the earlier UI cases, with its original machine-specific checkout paths replaced by two arguments and its output placed in a unique temporary directory. To reproduce on Windows, prepare separate checkouts of base `19b87c2` and candidate `618ff88`, run `npm ci` and `npm run build` in each, install Playwright Chromium, then run `node docs/evaluations/svelte-pr-2/compare-ui.mjs <absolute-base-path> <absolute-candidate-path>`. It uses local ports 43991 and 43992 and prints its evidence directory. Inspect the resulting JSON for individual pass/fail outcomes.
