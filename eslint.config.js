@@ -6,6 +6,7 @@ export default [
   {
     ignores: [
       'dist/**',
+    'dist-smoke/**',
       'node_modules/**',
       'functions/node_modules/**',
       '.firebase/**'

@@ -1,6 +1,6 @@
 # CogFit Jobs handoff
 
-Last verified: 2026-10-28 (PR #13 local verification; other workstreams retain their recorded dates)
+Last verified: 2026-11-25 (PR #43 local verification; earlier workstream entries retain their recorded dates)
 
 ## Goal
 
@@ -28,6 +28,22 @@ This is the single cross-surface handoff for the entire CogFit Jobs repository. 
 - PR #20, `codex/npm-audit-fixes`, merged on 2026-10-21 as `f09f103`. Its temporary Braces exception was based on GHSA-vfj7-8cjw-p6xm, which GitHub withdrew on 2026-10-23 as not practically exploitable. PR #21 removed that obsolete exception while retaining audit-ci's high threshold without an allowlist.
 - Security and monitoring PR #21, `codex/vite-security-monitoring`, merged into `main` on 2026-10-25 as `b53ee12`. It updates Vite and compatible dependencies, configures weekly Dependabot monitoring for root npm, Functions npm, and GitHub Actions, and schedules the existing verification workflow. GitHub Dependabot alerts and security updates are enabled. The raw root audit has five moderate findings remaining in Firebase CLI development tooling; npm's suggested automatic fix requires a major Firebase Tools downgrade. The Functions tree has one moderate `qs` advisory; the high-severity CI threshold passes. Dependabot PRs #22, #23, and #24 were closed as superseded after their exact updates landed in `main`.
 - Draft PR #13, `codex/add-job-discovery-domain`, is rebased onto current `main` at `19b87c2`. It preserves ATS-specific posting-date semantics: Greenhouse `first_published`, Lever `createdAt`, and Ashby `publishedAt` (last published). Local canonical verification and `audit:ci` pass on the revised worktree; GitHub Actions for the new head remains pending.
+
+## PR #43: App Check release build
+
+The deployed bundle omitted `VITE_FIREBASE_APPCHECK_SITE_KEY`. The browser stopped before calling the protected Firebase Functions. Sign-in and sample reports still worked. Profile generation fell back to local scoring, cloud profile save failed, and a custom job ad could not produce a live report.
+
+The release build now requires a nonblank site key and rejects the CI placeholder. Browser initialization trims the key as the build check does. Explicit smoke builds use `dist-smoke/`, outside Hosting's `dist/`. Hosting predeploy rebuilds and scans `dist/`. The key already registered for the web app is the required public build input. A build check establishes presence, and production token exchange establishes whether App Check accepts the configuration.
+
+Local verification passed for lint, 71 tests, the registered-key release build, the sample browser smoke, the Firestore REST emulator smoke, both audit gates at their configured thresholds, and public secret scans. The Firebase CLI's Hosting lifecycle was exercised locally against the repo's hooks. A rejected placeholder stopped the build before scanning. An intentionally flagged fixture copied into `dist/` correctly stopped predeploy at the scan. With the fixture removed, the hooks rebuilt and scanned a clean bundle containing the registered public key. No production model calls or deployment were made in this pass.
+
+### After an authorized Hosting deployment
+
+- [ ] Record the release ID, verified Git revision, and artifact identifier. Confirm Hosting serves the verified bundle.
+- [ ] In a clean session, sign in with the ordinary QA account and verify that reCAPTCHA Enterprise exchanges for an App Check token and a protected callable accepts it. Record status only and keep tokens out of evidence.
+- [ ] Generate a new live profile from labeled QA evidence. Confirm the UI uses live generation and reports a successful cloud save.
+- [ ] Submit a distinguishable custom job ad with a known mismatch. Confirm live evaluation produces a new report and flags the mismatch. Save feedback.
+- [ ] In a fresh browser session with no prior local data, sign in again and confirm the same profile, report, and feedback are retrieved from the account. Reload and confirm the same results remain available.
 
 ## Decisions
 

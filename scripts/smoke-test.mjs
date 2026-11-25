@@ -13,6 +13,7 @@ const viteEntryPoint = fileURLToPath(
 const commandArgs = [
   viteEntryPoint,
   'preview',
+  '--mode', 'smoke',
   '--host',
   '127.0.0.1',
   '--port',

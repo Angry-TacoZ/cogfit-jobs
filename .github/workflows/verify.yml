@@ -62,11 +62,15 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
-      - name: Build production application
-        run: npm run build
+      - name: Build application for the local browser smoke test
+        env:
+          VITE_FIREBASE_APPCHECK_SITE_KEY: ci-smoke-test-placeholder
+        run: npm run build:smoke
 
-      - name: Scan browser-delivered code for exposed secrets
-        run: npm run scan:secrets
+      - name: Scan source and the browser smoke bundle for exposed secrets
+        run: |
+          npm run scan:secrets
+          npm run scan:secrets -- dist-smoke
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
