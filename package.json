@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:smoke": "vite build --mode smoke",
     "preview": "vite preview",
     "lint": "eslint src \"functions/**/*.js\" \"scripts/**/*.mjs\" \"scripts/**/*.cjs\" vite.config.js",
     "test": "vitest run",

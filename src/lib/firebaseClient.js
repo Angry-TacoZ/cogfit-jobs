@@ -50,7 +50,7 @@ export async function getFirebaseApp() {
 }
 
 export async function startAppCheck() {
-  const siteKey = import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY;
+  const siteKey = import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY?.trim();
   if (!siteKey) {
     throw new Error('Firebase App Check site key is missing.');
   }
