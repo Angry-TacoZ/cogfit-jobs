@@ -62,7 +62,20 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
-      - name: Build production application
+      - name: Reject a build without an App Check site key
+        run: |
+          if npm run build > build-without-site-key.log 2>&1; then
+            echo "Build unexpectedly succeeded without an App Check site key."
+            exit 1
+          fi
+          if ! grep -F 'VITE_FIREBASE_APPCHECK_SITE_KEY is required to build CogFit Jobs.' build-without-site-key.log; then
+            cat build-without-site-key.log
+            exit 1
+          fi
+
+      - name: Build application for the local browser smoke test
+        env:
+          VITE_FIREBASE_APPCHECK_SITE_KEY: ci-smoke-test-placeholder
         run: npm run build
 
       - name: Scan browser-delivered code for exposed secrets

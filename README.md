@@ -35,7 +35,9 @@ Open the local Vite URL shown in the terminal. Live profile generation and job e
 npm run build
 ```
 
-The production build is emitted to `dist/`.
+Set `VITE_FIREBASE_APPCHECK_SITE_KEY` in the build environment or in the Git-ignored `.env` file in the checkout you are building. Use the public reCAPTCHA Enterprise site key registered for the deployed web app in Firebase App Check. Vite embeds this value at build time and rejects builds with a missing or blank value. The build is emitted to `dist/`.
+
+CI uses a placeholder for the local sample smoke test. A Hosting release requires the registered web app's site key.
 
 ## Environment variables
 
@@ -86,7 +88,7 @@ npm run build
 firebase deploy --only hosting,functions --project cogfit-jobs
 ```
 
-Hosting uses `dist` as the public directory and rewrites SPA routes to `index.html`.
+Hosting uses `dist` as the public directory and rewrites SPA routes to `index.html`. The Hosting predeploy hooks rebuild and scan `dist` in the deployment checkout. Supply the same registered site key and build configuration for the predeployment verification and the deploy command.
 
 Before deploying a public web artifact from this workspace, run:
 
